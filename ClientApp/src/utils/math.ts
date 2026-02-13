@@ -1,4 +1,4 @@
-﻿export const roundUp = (value: number, unit: number) => {
+export const roundUp = (value: number, unit: number) => {
   return Math.ceil(value / unit) * unit;
 };
 

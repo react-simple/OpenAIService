@@ -41,30 +41,30 @@
     <None Remove="ClientApp\build\static\css\main.e6c13ad2.css.map" />
     <None Remove="ClientApp\build\static\js\496.83ec5292.chunk.js" />
     <None Remove="ClientApp\build\static\js\496.83ec5292.chunk.js.map" />
-    <None Remove="ClientApp\src\util\array.ts" />
-    <None Remove="ClientApp\src\util\formatting.ts" />
-    <None Remove="ClientApp\src\util\index.ts" />
-    <None Remove="ClientApp\src\util\math.ts" />
-    <None Remove="ClientApp\src\util\string.ts" />
+    <None Remove="ClientApp\src\utils\array.ts" />
+    <None Remove="ClientApp\src\utils\formatting.ts" />
+    <None Remove="ClientApp\src\utils\index.ts" />
+    <None Remove="ClientApp\src\utils\math.ts" />
+    <None Remove="ClientApp\src\utils\string.ts" />
   </ItemGroup>
 
   <ItemGroup>
     <TypeScriptCompile Include="ClientApp\src\components\App\index.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\util\formatting.ts">
+    <TypeScriptCompile Include="ClientApp\src\utils\formatting.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\util\math.ts">
+    <TypeScriptCompile Include="ClientApp\src\utils\math.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\util\index.ts">
+    <TypeScriptCompile Include="ClientApp\src\utils\index.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\util\string.ts">
+    <TypeScriptCompile Include="ClientApp\src\utils\string.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\util\array.ts" />
+    <TypeScriptCompile Include="ClientApp\src\utils\array.ts" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-﻿import { stringCompare } from "./string";
+import { stringCompare } from "./string";
 import { numberCompare } from "./math";
 
 export const sortArrayByString = <Item>(arr: Item[], sortBy: (item: Item) => string) => {

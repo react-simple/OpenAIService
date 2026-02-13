@@ -1,17 +1,77 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { postChat } from "functions";
 import type { ChatMessage, ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
+import { countWords, formatWithSuffix } from "utils";
 import * as Styled from "./Home.styles";
-
-const MEMORY_UPDATED_PLACEHOLDER = "Memory updated";
+import { copyToClipboard } from "utils";
+import {
+  MEMORY_STORAGE_KEY,
+  FONT_SIZE_STORAGE_KEY,
+  FONT_SIZE_MIN,
+  FONT_SIZE_MAX,
+  FONT_SIZE_DEFAULT,
+  getStoredMemory,
+  getStoredFontSize,
+  CopyIcon,
+} from "./Home.utils";
+import { MemoryModal } from "./MemoryModal";
+import { Toolbar } from "./Toolbar";
 
 export const Home = () => {
   const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
-  const [memory, setMemory] = useState("");
+  const [memory, setMemory] = useState(() => getStoredMemory());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [memoryModalOpen, setMemoryModalOpen] = useState(false);
+  const [lastSentWords, setLastSentWords] = useState(0);
+  const [lastReceivedWords, setLastReceivedWords] = useState(0);
+  const [totalSentWords, setTotalSentWords] = useState(0);
+  const [totalReceivedWords, setTotalReceivedWords] = useState(0);
+  const [fontSize, setFontSize] = useState(() => getStoredFontSize());
+
+  const closeMemoryModal = useCallback(() => {
+    setMemoryModalOpen(false);
+  }, []);
+
+  const saveMemory = useCallback((content: string) => {
+    setMemory(content);
+    setMemoryModalOpen(false);
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MEMORY_STORAGE_KEY, memory);
+    }
+    catch {
+      // ignore quota or disabled localStorage
+    }
+  }, [memory]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(fontSize));
+    }
+    catch {
+      // ignore
+    }
+  }, [fontSize]);
+
+  const decreaseFontSize = useCallback(() => {
+    setFontSize((prev) => Math.max(FONT_SIZE_MIN, prev - 1));
+  }, []);
+
+  const increaseFontSize = useCallback(() => {
+    setFontSize((prev) => Math.min(FONT_SIZE_MAX, prev + 1));
+  }, []);
+
+  const resetFontSize = useCallback(() => {
+    setFontSize(FONT_SIZE_DEFAULT);
+  }, []);
+
+  const handleCopyMessage = useCallback(async (content: string) => {
+    await copyToClipboard(content);
+  }, []);
 
   const buildRequestMessages = useCallback((): ChatMessage[] => {
     const msgs: ChatMessage[] = [];
@@ -37,27 +97,23 @@ export const Home = () => {
     try {
       const requestMessages = buildRequestMessages();
       requestMessages.push({ role: "user", content: text });
+      const sentInCall = requestMessages.reduce((sum, m) => sum + countWords(m.content), 0);
+      setLastSentWords(sentInCall);
+      setTotalSentWords((prev) => prev + sentInCall);
+
       const response = await postChat(requestMessages);
 
-      const newDisplay: ChatDisplayMessage[] = [];
+      const newDisplay: ChatDisplayMessage[] = response.messages
+        .filter((m) => m.role === "assistant")
+        .map((m) => ({ ...m, displayType: DisplayMessageType.Normal }));
 
-      for (const m of response.messages) {
-        if (m.role === "system") {
-          setMemory(m.content);
-          newDisplay.push({
-            role: "assistant",
-            content: MEMORY_UPDATED_PLACEHOLDER,
-            displayType: DisplayMessageType.MemoryPlaceholder,
-          });
-        }
-        else if (m.role === "assistant") {
-          newDisplay.push({ ...m, displayType: DisplayMessageType.Normal });
-        }
-      }
-
+      const receivedInCall = newDisplay.reduce((sum, m) => sum + countWords(m.content), 0);
+      setLastReceivedWords(receivedInCall);
+      setTotalReceivedWords((prev) => prev + receivedInCall);
       setChatHistory((prev) => [...prev, ...newDisplay]);
     }
     catch (e) {
+      setLastReceivedWords(0);
       const errorContent = e instanceof Error ? e.message : "Request failed";
       setChatHistory((prev) => [
         ...prev,
@@ -78,7 +134,13 @@ export const Home = () => {
 
   return (
     <Styled.Layout>
-      <Styled.MessageList>
+      <Toolbar
+        fontSize={fontSize}
+        onDecrease={decreaseFontSize}
+        onIncrease={increaseFontSize}
+        onReset={resetFontSize}
+      />
+      <Styled.MessageList $fontSizePx={fontSize}>
         {chatHistory.map((msg, i) => {
           const variant =
             msg.displayType === DisplayMessageType.Error
@@ -86,10 +148,20 @@ export const Home = () => {
               : msg.role === "user"
                 ? "user"
                 : "assistant";
+          const align = msg.role === "user" ? "end" : "start";
           return (
-            <Styled.MessageBubble key={i} $variant={variant}>
-              {msg.content}
-            </Styled.MessageBubble>
+            <Styled.MessageBlock key={i} $align={align}>
+              <Styled.MessageBubble $variant={variant}>
+                {msg.content}
+              </Styled.MessageBubble>
+              <Styled.CopyButton
+                type="button"
+                onClick={() => handleCopyMessage(msg.content)}
+                title="Copy"
+              >
+                <CopyIcon />
+              </Styled.CopyButton>
+            </Styled.MessageBlock>
           );
         })}
       </Styled.MessageList>
@@ -103,8 +175,11 @@ export const Home = () => {
           disabled={loading}
         />
         <Styled.SendRow>
+          <Styled.SentReceivedLabel>
+            Sent: {formatWithSuffix(lastSentWords)} ({formatWithSuffix(totalSentWords)} total) &nbsp; Received: {formatWithSuffix(lastReceivedWords)} ({formatWithSuffix(totalReceivedWords)} total)
+          </Styled.SentReceivedLabel>
           <Styled.Button type="button" onClick={() => setMemoryModalOpen(true)}>
-            Memory
+            Memory ({countWords(memory)})
           </Styled.Button>
           <Styled.Button $primary type="button" onClick={sendMessage} disabled={loading || !input.trim()}>
             {loading ? "Sending..." : "Send"}
@@ -112,19 +187,12 @@ export const Home = () => {
         </Styled.SendRow>
       </Styled.InputArea>
 
-      {memoryModalOpen && (
-        <Styled.Overlay onClick={() => setMemoryModalOpen(false)}>
-          <Styled.Modal onClick={(e) => e.stopPropagation()}>
-            <Styled.ModalHeader>
-              Memory
-              <Styled.Button type="button" onClick={() => setMemoryModalOpen(false)}>
-                Close
-              </Styled.Button>
-            </Styled.ModalHeader>
-            <Styled.ModalBody>{memory || "(empty)"}</Styled.ModalBody>
-          </Styled.Modal>
-        </Styled.Overlay>
-      )}
+      <MemoryModal
+        open={memoryModalOpen}
+        onClose={closeMemoryModal}
+        initialValue={memory}
+        onSave={saveMemory}
+      />
     </Styled.Layout>
   );
 };

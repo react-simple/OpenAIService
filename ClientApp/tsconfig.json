@@ -29,11 +29,12 @@
       "forms/*": [ "forms/*" ],
       "functions/*": [ "functions/*" ],
       "hooks/*": [ "hooks/*" ],
-      "util/*": [ "util/*" ],
+      "utils/*": [ "utils/*" ],
       "types/*": [ "types/*" ],
       "consts": [ "consts/index.ts" ],
       "functions": [ "functions/index.ts" ],
-      "types": [ "types/index.ts" ]
+      "types": [ "types/index.ts" ],
+      "utils": [ "utils/index.ts" ]
     }
   },
   "include": ["src", "src/*"],

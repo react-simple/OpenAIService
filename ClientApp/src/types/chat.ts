@@ -2,7 +2,6 @@ export type ChatRole = "user" | "system" | "assistant";
 
 export enum DisplayMessageType {
   Normal = "normal",
-  MemoryPlaceholder = "memoryPlaceholder",
   Error = "error",
 }
 
