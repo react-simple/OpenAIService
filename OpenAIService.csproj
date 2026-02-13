@@ -12,9 +12,11 @@
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
     <RootNamespace>OpenAIServiceGPT4o</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>5f931063-a207-4bf9-b75c-9719cae12784</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="10.0.3" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
   </ItemGroup>
@@ -66,7 +68,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="ClientApp\src\data\" />
     <Folder Include="ClientApp\src\functions\" />
     <Folder Include="ClientApp\src\types\" />
     <Folder Include="Helpers\" />

@@ -27,10 +27,13 @@
       "components/*": [ "components/*" ],
       "consts/*": [ "consts/*" ],
       "forms/*": [ "forms/*" ],
+      "functions/*": [ "functions/*" ],
       "hooks/*": [ "hooks/*" ],
       "util/*": [ "util/*" ],
-      "types/*": [ "functions/*" ],
-      "types/*": [ "types/*" ]
+      "types/*": [ "types/*" ],
+      "consts": [ "consts/index.ts" ],
+      "functions": [ "functions/index.ts" ],
+      "types": [ "types/index.ts" ]
     }
   },
   "include": ["src", "src/*"],

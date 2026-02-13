@@ -1,0 +1,38 @@
+---
+description: Blank lines before and after if, for, while, switch
+alwaysApply: true
+---
+
+# Blank lines around control structures
+
+Keep a **blank line before** and **after** every `if`, `for`, `while`, and `switch` structure.
+
+**Exceptions:**
+- If the structure is the **first** statement in its parent block, do **not** add a blank line before it.
+- If the structure is the **last** statement in its parent block, do **not** add a blank line after it.
+
+Apply in both backend (C#) and frontend (TypeScript/TSX).
+
+**Example (C#):**
+```csharp
+var a = 1;
+
+if (condition)
+{
+  DoSomething();
+}
+
+var b = 2;
+```
+
+**Example (TS):**
+```ts
+const list = [];
+
+for (const x of items)
+{
+  list.push(x);
+}
+
+return list;
+```
