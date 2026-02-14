@@ -28,6 +28,16 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpPost("chat")]
     public async Task<ActionResult<ChatResponse>> PostChat([FromBody] ChatRequest request)
     {
+      var configuredPin = _config["Pin"] ?? "";
+
+      if (string.IsNullOrEmpty(configuredPin))
+        return StatusCode(500, "Pin is not configured (set Pin in User Secrets or App Settings).");
+
+      var pin = Request.Headers["X-Pin"].FirstOrDefault();
+
+      if (string.IsNullOrEmpty(pin) || pin != configuredPin)
+        return Unauthorized();
+
       var endpoint = _config["Endpoint"] ?? "";
       var key = _config["OpenAIKey"] ?? "";
       var model = _config["ModelName"] ?? "";

@@ -11,14 +11,17 @@ import {
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
   FONT_SIZE_DEFAULT,
-  getStoredMemory,
-  getStoredFontSize,
-  CopyIcon,
-} from "./Home.utils";
-import { MemoryModal } from "./MemoryModal";
-import { Toolbar } from "./Toolbar";
+} from "consts";
+import { getStoredMemory, getStoredFontSize } from "./Home.utils";
+import { Button } from "components/Button";
+import { CopyButton } from "components/CopyButton";
+import { CopyIcon } from "icons";
+import { MemoryModal } from "components/MemoryModal";
+import { Toolbar } from "components/Toolbar";
+import { useAuth } from "contexts/AuthContext";
 
 export const Home = () => {
+  const { pin } = useAuth();
   const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
   const [memory, setMemory] = useState(() => getStoredMemory());
   const [input, setInput] = useState("");
@@ -101,7 +104,7 @@ export const Home = () => {
       setLastSentWords(sentInCall);
       setTotalSentWords((prev) => prev + sentInCall);
 
-      const response = await postChat(requestMessages);
+      const response = await postChat(requestMessages, pin!);
 
       const newDisplay: ChatDisplayMessage[] = response.messages
         .filter((m) => m.role === "assistant")
@@ -123,7 +126,7 @@ export const Home = () => {
     finally {
       setLoading(false);
     }
-  }, [input, loading, buildRequestMessages]);
+  }, [input, loading, buildRequestMessages, pin]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -154,13 +157,9 @@ export const Home = () => {
               <Styled.MessageBubble $variant={variant}>
                 {msg.content}
               </Styled.MessageBubble>
-              <Styled.CopyButton
-                type="button"
-                onClick={() => handleCopyMessage(msg.content)}
-                title="Copy"
-              >
+              <CopyButton type="button" onClick={() => handleCopyMessage(msg.content)} title="Copy">
                 <CopyIcon />
-              </Styled.CopyButton>
+              </CopyButton>
             </Styled.MessageBlock>
           );
         })}
@@ -178,12 +177,12 @@ export const Home = () => {
           <Styled.SentReceivedLabel>
             Sent: {formatWithSuffix(lastSentWords)} ({formatWithSuffix(totalSentWords)} total) &nbsp; Received: {formatWithSuffix(lastReceivedWords)} ({formatWithSuffix(totalReceivedWords)} total)
           </Styled.SentReceivedLabel>
-          <Styled.Button type="button" onClick={() => setMemoryModalOpen(true)}>
+          <Button type="button" onClick={() => setMemoryModalOpen(true)}>
             Memory ({countWords(memory)})
-          </Styled.Button>
-          <Styled.Button $primary type="button" onClick={sendMessage} disabled={loading || !input.trim()}>
+          </Button>
+          <Button $primary type="button" onClick={sendMessage} disabled={loading || !input.trim()}>
             {loading ? "Sending..." : "Send"}
-          </Styled.Button>
+          </Button>
         </Styled.SendRow>
       </Styled.InputArea>
 

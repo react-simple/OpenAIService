@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { countWords, formatWithSuffix } from "utils";
 import { copyToClipboard } from "utils";
-import { CopyIcon } from "./Home.utils";
-import * as Styled from "./Home.styles";
+import { Button } from "components/Button";
+import { CopyButton } from "components/CopyButton";
+import { CopyIcon } from "icons";
+import * as Modal from "components/Modal";
 
 interface MemoryModalProps {
   open: boolean;
@@ -30,30 +32,30 @@ export const MemoryModal = ({ open, onClose, initialValue, onSave }: MemoryModal
   };
 
   return (
-    <Styled.Overlay onClick={onClose}>
-      <Styled.Modal onClick={(e) => e.stopPropagation()}>
-        <Styled.ModalHeader>
+    <Modal.Overlay onClick={onClose}>
+      <Modal.Modal onClick={(e) => e.stopPropagation()}>
+        <Modal.ModalHeader>
           <span>Memory — {formatWithSuffix(countWords(draft))} words</span>
-          <Styled.CopyButton type="button" onClick={handleCopy} title="Copy memory">
+          <CopyButton type="button" onClick={handleCopy} title="Copy memory">
             <CopyIcon />
-          </Styled.CopyButton>
-        </Styled.ModalHeader>
-        <Styled.ModalBody>
-          <Styled.MemoryTextArea
+          </CopyButton>
+        </Modal.ModalHeader>
+        <Modal.ModalBody>
+          <Modal.MemoryTextArea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Type or paste context the assistant should remember (sent as system message)."
           />
-        </Styled.ModalBody>
-        <Styled.ModalFooter>
-          <Styled.Button type="button" onClick={onClose}>
+        </Modal.ModalBody>
+        <Modal.ModalFooter>
+          <Button type="button" onClick={onClose}>
             Cancel
-          </Styled.Button>
-          <Styled.Button $primary type="button" onClick={handleSave}>
+          </Button>
+          <Button $primary type="button" onClick={handleSave}>
             Save
-          </Styled.Button>
-        </Styled.ModalFooter>
-      </Styled.Modal>
-    </Styled.Overlay>
+          </Button>
+        </Modal.ModalFooter>
+      </Modal.Modal>
+    </Modal.Overlay>
   );
 };

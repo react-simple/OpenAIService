@@ -1,18 +1,17 @@
 import React from 'react';
-import { AppRoutes } from 'components';
+import { AppRoutes, AuthGate } from 'components';
 import * as Styled from "App.styles";
+import { AuthProvider } from "contexts/AuthContext";
 
 export const App = () => {
-  // AppWrapper renders:
-  // - HelmetProvider
-  // - QueryClientProvider
-  // - Styled.GlobalStyles
-  // See https://github.com/CommonwealthDevelopment/web-ui-component-library/blob/develop/src/stories/App/App.tsx
-
   return (
     <div>
       <Styled.GlobalStyles />
-      <AppRoutes />
+      <AuthProvider>
+        <AuthGate>
+          <AppRoutes />
+        </AuthGate>
+      </AuthProvider>
     </div>
   );
 };

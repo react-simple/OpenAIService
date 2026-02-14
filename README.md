@@ -24,6 +24,9 @@ Use **user secrets** so the same key names are read from a local store (not in t
 dotnet user-secrets set "Endpoint" "https://your-resource.openai.azure.com/"
 dotnet user-secrets set "OpenAIKey" "your-api-key"
 dotnet user-secrets set "ModelName" "your-deployment-name"
+dotnet user-secrets set "Pin" "YOUR_4_CHAR_PIN"
 ```
 
-User secrets are loaded by the .NET configuration and override appsettings. Same keys as in Azure, so behavior matches.
+**Pin** must be exactly 4 alphanumeric characters (0–9, A–Z, a–z). The app shows a PIN dialog at startup; on success the chat is available, on failure it redirects to chatgpt.com. The PIN is also required on every API request (e.g. chat).
+
+User secrets are loaded by the .NET configuration and override appsettings. Same keys as in Azure, so behavior matches. In Azure Web App, set **Pin** in Application settings as well.

@@ -6,4 +6,7 @@ export const ENDPOINTS = {
   chat: {
     post: `${API_ORIGIN}/api/chat`,
   },
+  auth: {
+    validatePin: `${API_ORIGIN}/api/auth/validate-pin`,
+  },
 };
