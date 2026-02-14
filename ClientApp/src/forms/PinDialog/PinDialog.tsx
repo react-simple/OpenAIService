@@ -52,7 +52,7 @@ export const PinDialog = ({ onValidate }: PinDialogProps) => {
     e.preventDefault();
 
     if (pin.length !== PIN_LENGTH) {
-      setError("Enter 4 alphanumeric characters.");
+      setError(`Enter ${PIN_LENGTH} alphanumeric characters.`);
       return;
     }
 
@@ -72,12 +72,12 @@ export const PinDialog = ({ onValidate }: PinDialogProps) => {
 
   return (
     <Modal.Overlay>
-      <Modal.Modal style={{ maxWidth: "360px", height: "auto" }} onClick={(e) => e.stopPropagation()}>
+      <Modal.Modal style={{ maxWidth: `${60 * PIN_LENGTH + 40}px`, height: "auto" }} onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <Modal.ModalHeader>Enter PIN</Modal.ModalHeader>
           <Modal.ModalBody>
             <PinStyled.PinInputRow>
-              {[0, 1, 2, 3].map((i) => (
+              {Array.from({ length: PIN_LENGTH }, (_, i) => i).map((i) => (
                 <PinStyled.PinInput
                   key={i}
                   ref={(el) => { inputRefs.current[i] = el; }}
@@ -88,7 +88,7 @@ export const PinDialog = ({ onValidate }: PinDialogProps) => {
                   value={pin[i] ?? ""}
                   onChange={(e) => handleChange(i, e)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
-                  maxLength={4}
+                  maxLength={PIN_LENGTH}
                   aria-label={`PIN digit ${i + 1}`}
                 />
               ))}

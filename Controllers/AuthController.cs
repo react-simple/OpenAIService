@@ -8,9 +8,11 @@ namespace OpenAIServiceGpt4o.Controllers
   [Route("api/auth")]
   public class AuthController : ControllerBase
   {
+    private const int PinLength = 8;
+
     private readonly IConfiguration _config;
 
-    private static readonly Regex PinFormat = new("^[A-Za-z0-9]{4}$", RegexOptions.Compiled);
+    private static readonly Regex PinFormat = new($"^[A-Za-z0-9]{{{PinLength}}}$", RegexOptions.Compiled);
 
     public AuthController(IConfiguration config)
     {
@@ -28,7 +30,7 @@ namespace OpenAIServiceGpt4o.Controllers
       var pin = (request?.Pin ?? "").Trim();
 
       if (!PinFormat.IsMatch(pin))
-        return BadRequest("Pin must be exactly 4 alphanumeric characters.");
+        return BadRequest($"Pin must be exactly {PinLength} alphanumeric characters.");
 
       if (pin != configuredPin)
         return Unauthorized();
