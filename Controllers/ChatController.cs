@@ -1,4 +1,5 @@
 using Azure.AI.OpenAI;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenAIServiceGpt4o.Models;
 using OpenAI.Chat;
@@ -25,25 +26,16 @@ namespace OpenAIServiceGpt4o.Controllers
       _config = config;
     }
 
+    [Authorize]
     [HttpPost("chat")]
     public async Task<ActionResult<ChatResponse>> PostChat([FromBody] ChatRequest request)
     {
-      var configuredPin = _config["Pin"] ?? "";
-
-      if (string.IsNullOrEmpty(configuredPin))
-        return StatusCode(500, "Pin is not configured (set Pin in User Secrets or App Settings).");
-
-      var pin = Request.Headers["X-Pin"].FirstOrDefault();
-
-      if (string.IsNullOrEmpty(pin) || pin != configuredPin)
-        return Unauthorized();
-
-      var endpoint = _config["Endpoint"] ?? "";
-      var key = _config["OpenAIKey"] ?? "";
-      var model = _config["ModelName"] ?? "";
+      var endpoint = _config["OpenAI:Endpoint"] ?? "";
+      var key = _config["OpenAI:Key"] ?? "";
+      var model = _config["OpenAI:ModelName"] ?? "";
 
       if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(model))
-        return StatusCode(500, "Azure OpenAI is not configured (Endpoint, OpenAIKey, ModelName).");
+        return StatusCode(500, "Azure OpenAI is not configured (OpenAI:Endpoint, OpenAI:Key, OpenAI:ModelName).");
 
       var credential = new ApiKeyCredential(key);
       var azureClient = new AzureOpenAIClient(new Uri(endpoint), credential);

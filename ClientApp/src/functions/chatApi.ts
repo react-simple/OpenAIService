@@ -1,13 +1,11 @@
 import { ENDPOINTS } from "consts";
 import type { ChatMessage, ChatRequest, ChatResponse } from "types";
 
-export async function postChat(messages: ChatMessage[], pin: string): Promise<ChatResponse> {
+export async function postChat(messages: ChatMessage[]): Promise<ChatResponse> {
   const res = await fetch(ENDPOINTS.chat.post, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Pin": pin,
-    },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages } as ChatRequest),
   });
 

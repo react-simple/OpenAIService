@@ -7,6 +7,8 @@ export const ENDPOINTS = {
     post: `${API_ORIGIN}/api/chat`,
   },
   auth: {
-    validatePin: `${API_ORIGIN}/api/auth/validate-pin`,
+    login: `${API_ORIGIN}/api/auth/login`,
+    logout: `${API_ORIGIN}/api/auth/logout`,
+    me: `${API_ORIGIN}/api/auth/me`,
   },
 };

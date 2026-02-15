@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
-using OpenAIServiceGpt4o.Models;
-using System.Text.RegularExpressions;
 
 namespace OpenAIServiceGpt4o.Controllers
 {
@@ -8,32 +8,37 @@ namespace OpenAIServiceGpt4o.Controllers
   [Route("api/auth")]
   public class AuthController : ControllerBase
   {
-    private const int PinLength = 8;
-
     private readonly IConfiguration _config;
-
-    private static readonly Regex PinFormat = new($"^[A-Za-z0-9]{{{PinLength}}}$", RegexOptions.Compiled);
 
     public AuthController(IConfiguration config)
     {
       _config = config;
     }
 
-    [HttpPost("validate-pin")]
-    public IActionResult ValidatePin([FromBody] PinRequest request)
+    [HttpGet("login")]
+    public IActionResult Login()
     {
-      var configuredPin = _config["Pin"] ?? "";
+      var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:44489";
 
-      if (string.IsNullOrEmpty(configuredPin))
-        return StatusCode(500, "Pin is not configured (set Pin in User Secrets or App Settings).");
+      return Challenge(new AuthenticationProperties { RedirectUri = frontendUrl }, GoogleDefaults.AuthenticationScheme);
+    }
 
-      var pin = (request?.Pin ?? "").Trim();
-
-      if (!PinFormat.IsMatch(pin))
-        return BadRequest($"Pin must be exactly {PinLength} alphanumeric characters.");
-
-      if (pin != configuredPin)
+    [HttpGet("me")]
+    public IActionResult Me()
+    {
+      if (User.Identity?.IsAuthenticated != true)
         return Unauthorized();
+
+      var email = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value
+        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+
+      return Ok(new { email });
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+      await HttpContext.SignOutAsync();
 
       return Ok();
     }

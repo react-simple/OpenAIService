@@ -1,26 +1,56 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
-import { validatePin as validatePinApi } from "functions";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { getMe, logout as logoutApi } from "functions";
+import type { AuthUser } from "functions";
+import { ENDPOINTS } from "consts";
 
 interface AuthContextValue {
-  pin: string | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
-  validatePin: (pin: string) => Promise<void>;
+  isLoading: boolean;
+  login: () => void;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [pin, setPin] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const validatePin = useCallback(async (enteredPin: string) => {
-    await validatePinApi(enteredPin);
-    setPin(enteredPin);
+  const checkAuth = useCallback(async () => {
+    try {
+      const u = await getMe();
+      setUser(u);
+    }
+    catch {
+      setUser(null);
+    }
+    finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const login = useCallback(() => {
+    window.location.href = ENDPOINTS.auth.login;
+  }, []);
+
+  const logout = useCallback(async () => {
+    await logoutApi();
+    setUser(null);
   }, []);
 
   const value: AuthContextValue = {
-    pin,
-    isAuthenticated: pin !== null,
-    validatePin,
+    user,
+    isAuthenticated: user !== null,
+    isLoading,
+    login,
+    logout,
+    checkAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

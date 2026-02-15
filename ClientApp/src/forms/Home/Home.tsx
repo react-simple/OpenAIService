@@ -18,10 +18,7 @@ import { CopyButton } from "components/CopyButton";
 import { CopyIcon } from "icons";
 import { MemoryModal } from "components/MemoryModal";
 import { Toolbar } from "components/Toolbar";
-import { useAuth } from "contexts/AuthContext";
-
 export const Home = () => {
-  const { pin } = useAuth();
   const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
   const [memory, setMemory] = useState(() => getStoredMemory());
   const [input, setInput] = useState("");
@@ -104,7 +101,7 @@ export const Home = () => {
       setLastSentWords(sentInCall);
       setTotalSentWords((prev) => prev + sentInCall);
 
-      const response = await postChat(requestMessages, pin!);
+      const response = await postChat(requestMessages);
 
       const newDisplay: ChatDisplayMessage[] = response.messages
         .filter((m) => m.role === "assistant")
@@ -126,7 +123,7 @@ export const Home = () => {
     finally {
       setLoading(false);
     }
-  }, [input, loading, buildRequestMessages, pin]);
+  }, [input, loading, buildRequestMessages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
