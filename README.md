@@ -8,6 +8,14 @@ React frontend (ClientApp) + .NET backend. Chat UI calls Azure OpenAI via the ba
 
 The backend needs **OpenAI:Endpoint**, **OpenAI:Key**, **OpenAI:ModelName** for Azure OpenAI.
 
+### Azure SQL (allowed users)
+
+The backend uses an Azure SQL database to determine which users are allowed to access the app after Google sign-in. Configure the connection string:
+
+- **ConnectionStrings:DefaultConnection** — Azure SQL connection string.
+
+The `[dbo].[User]` table must exist (Email, IsEnabled). Create it using the **Database** project (e.g. run the script `Database/Tables/User.sql` or publish the Database project to your Azure SQL database).
+
 ### Google OAuth (sign-in)
 
 The backend needs **Google:ClientId** and **Google:ClientSecret** from [Google Cloud Console](https://console.cloud.google.com) (OAuth 2.0 Client ID, Web application).
@@ -21,7 +29,7 @@ Optional:
 
 ### Azure Web App (production)
 
-Set all values as **Application settings** in the Azure Portal (Configuration → Application settings): `OpenAI__Endpoint`, `OpenAI__Key`, `OpenAI__ModelName`, `Google__ClientId`, `Google__ClientSecret`, and optionally `FrontendUrl`, `AllowedOrigins`.
+Set all values as **Application settings** in the Azure Portal (Configuration → Application settings): `OpenAI__Endpoint`, `OpenAI__Key`, `OpenAI__ModelName`, `ConnectionStrings__DefaultConnection` (Azure SQL connection string), `Google__ClientId`, `Google__ClientSecret`, and optionally `FrontendUrl`, `AllowedOrigins`.
 
 ### Local development (user secrets)
 
@@ -34,6 +42,7 @@ dotnet user-secrets set "OpenAI:Key" "your-api-key"
 dotnet user-secrets set "OpenAI:ModelName" "your-deployment-name"
 dotnet user-secrets set "Google:ClientId" "your-google-client-id"
 dotnet user-secrets set "Google:ClientSecret" "your-google-client-secret"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=tcp:yourserver.database.windows.net,1433;Database=yourdb;User ID=...;Password=...;Encrypt=True;..."
 ```
 
 User secrets are loaded by the .NET configuration and override appsettings. Same key names as in Azure (use `__` for nested keys in Azure, e.g. `Google__ClientId`).

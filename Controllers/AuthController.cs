@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace OpenAIServiceGpt4o.Controllers
@@ -23,6 +24,7 @@ namespace OpenAIServiceGpt4o.Controllers
       return Challenge(new AuthenticationProperties { RedirectUri = frontendUrl }, GoogleDefaults.AuthenticationScheme);
     }
 
+    [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
     {
