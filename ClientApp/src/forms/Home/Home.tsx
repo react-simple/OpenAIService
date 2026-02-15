@@ -1,12 +1,11 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { postChat } from "functions";
+import { postChat, getMemory, putMemory } from "functions";
 import type { ChatMessage, ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
 import { countWords, formatWithSuffix } from "utils";
 import * as Styled from "./Home.styles";
 import { copyToClipboard } from "utils";
 import {
-  MEMORY_STORAGE_KEY,
   FONT_SIZE_STORAGE_KEY,
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
@@ -35,18 +34,24 @@ export const Home = () => {
   }, []);
 
   const saveMemory = useCallback((content: string) => {
-    setMemory(content);
-    setMemoryModalOpen(false);
+    putMemory(content)
+      .then(() => {
+        setMemory(content);
+        setMemoryModalOpen(false);
+      })
+      .catch(() => {
+        setMemory(content);
+        setMemoryModalOpen(false);
+      });
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(MEMORY_STORAGE_KEY, memory);
-    }
-    catch {
-      // ignore quota or disabled localStorage
-    }
-  }, [memory]);
+    getMemory()
+      .then((data) => {
+        if (data.content !== null) setMemory(data.content);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     try {

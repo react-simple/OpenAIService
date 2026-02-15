@@ -28,6 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Build Include="Tables\User.sql" />
+    <Build Include="Tables\Memory.sql" />
     <Build Include="Users\CreateUser_TRMOpenAIService.sql" />
   </ItemGroup>
   <ItemGroup>

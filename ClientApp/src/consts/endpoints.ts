@@ -11,4 +11,8 @@ export const ENDPOINTS = {
     logout: `${API_ORIGIN}/api/auth/logout`,
     me: `${API_ORIGIN}/api/auth/me`,
   },
+  memory: {
+    get: `${API_ORIGIN}/api/memory`,
+    put: `${API_ORIGIN}/api/memory`,
+  },
 };
