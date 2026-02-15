@@ -21,6 +21,7 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpGet("login")]
     public IActionResult Login()
     {
+      // In Azure, set FrontendUrl in App Settings so redirect after Google sign-in goes to your SPA, not localhost.
       var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:44489";
 
       return Challenge(new AuthenticationProperties { RedirectUri = frontendUrl }, GoogleDefaults.AuthenticationScheme);

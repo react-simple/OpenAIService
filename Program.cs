@@ -20,6 +20,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IAllowedUserService, AllowedUserService>();
+builder.Services.AddScoped<IErrorLogService, ErrorLogService>();
 builder.Services.AddScoped<IUserMemoryService, UserMemoryService>();
 builder.Services.AddScoped<IUserChatService, UserChatService>();
 builder.Services.AddAuthorization(options =>
@@ -57,6 +58,21 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
 }
+
+app.Use(async (context, next) =>
+{
+  try
+  {
+    await next(context);
+  }
+  catch (Exception ex)
+  {
+    var logService = context.RequestServices.GetService<OpenAIServiceGpt4o.Services.IErrorLogService>();
+    if (logService != null)
+      await logService.LogAsync(ex).ConfigureAwait(false);
+    throw;
+  }
+});
 
 app.UseStaticFiles();
 app.UseRouting();
