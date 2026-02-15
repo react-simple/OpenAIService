@@ -31,9 +31,12 @@
     <Build Include="Tables\Memory.sql" />
     <Build Include="Tables\Chat.sql" />
     <Build Include="Users\CreateUser_TRMOpenAIService.sql" />
+    <Build Include="Tables\Error.sql" />
+    <Build Include="Scripts\AddUserDateColumns.sql" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Tables\" />
     <Folder Include="Users\" />
+    <Folder Include="Scripts" />
   </ItemGroup>
 </Project>

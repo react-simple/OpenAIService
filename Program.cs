@@ -11,7 +11,22 @@ var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-  .AddCookie()
+  .AddCookie(options =>
+  {
+    options.Events.OnSignedIn = async context =>
+    {
+      var email = context.Principal?.Claims
+        .FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value
+        ?? context.Principal?.Claims
+          .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      if (!string.IsNullOrWhiteSpace(email))
+      {
+        var userService = context.HttpContext.RequestServices.GetService<OpenAIServiceGpt4o.Services.IUserService>();
+        if (userService != null)
+          await userService.UpdateLastLoginAsync(email, context.HttpContext.RequestAborted).ConfigureAwait(false);
+      }
+    };
+  })
   .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
   {
     options.ClientId = config["Google:ClientId"] ?? "";
@@ -21,6 +36,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IAllowedUserService, AllowedUserService>();
 builder.Services.AddScoped<IErrorLogService, ErrorLogService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserMemoryService, UserMemoryService>();
 builder.Services.AddScoped<IUserChatService, UserChatService>();
 builder.Services.AddAuthorization(options =>

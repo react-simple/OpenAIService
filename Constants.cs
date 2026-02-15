@@ -5,6 +5,9 @@ namespace OpenAIServiceGpt4o
     /// <summary>Duration to cache allowed-user lookups (reduces SQL roundtrips).</summary>
     public const int AllowedUserCacheDurationMinutes = 5;
 
+    /// <summary>Debounce: do not update LastActivityDate for the same user again until this many seconds have passed since the last update.</summary>
+    public const int LastActivityUpdateDebounceSeconds = 60;
+
     /// <summary>Minimum total length of user messages (excluding system/assistant) before generating a GPT chat title.</summary>
     public const int MinUserCharsForTitle = 1000;
 

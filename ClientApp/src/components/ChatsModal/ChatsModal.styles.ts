@@ -29,6 +29,7 @@ export const ChatListItem = styled.li`
 export const ChatItemContent = styled.div`
   flex: 1;
   min-width: 0;
+  font-size: 0.875rem;
 `;
 
 export const ChatTitle = styled.div`
@@ -37,7 +38,7 @@ export const ChatTitle = styled.div`
 `;
 
 export const ChatDate = styled.div`
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: #6b7280;
 `;
 
