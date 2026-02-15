@@ -21,6 +21,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IAllowedUserService, AllowedUserService>();
 builder.Services.AddScoped<IUserMemoryService, UserMemoryService>();
+builder.Services.AddScoped<IUserChatService, UserChatService>();
 builder.Services.AddAuthorization(options =>
 {
   options.AddPolicy("AllowedUser", policy =>

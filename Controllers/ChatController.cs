@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using Azure.AI.OpenAI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenAIServiceGpt4o.Models;
+using OpenAIServiceGpt4o.Services;
 using OpenAI.Chat;
 using System.ClientModel;
 
@@ -12,6 +14,13 @@ namespace OpenAIServiceGpt4o.Controllers
   public class ChatController : ControllerBase
   {
     private readonly IConfiguration _config;
+    private readonly IUserChatService _chatService;
+
+    public ChatController(IConfiguration config, IUserChatService chatService)
+    {
+      _config = config;
+      _chatService = chatService;
+    }
 
     private static readonly ChatCompletionOptions RequestOptions = new()
     {
@@ -21,14 +30,9 @@ namespace OpenAIServiceGpt4o.Controllers
       PresencePenalty = 0f
     };
 
-    public ChatController(IConfiguration config)
-    {
-      _config = config;
-    }
-
     [Authorize]
     [HttpPost("chat")]
-    public async Task<ActionResult<ChatResponse>> PostChat([FromBody] ChatRequest request)
+    public async Task<ActionResult<ChatResponse>> PostChat([FromBody] ChatRequest request, CancellationToken cancellationToken)
     {
       var endpoint = _config["OpenAI:Endpoint"] ?? "";
       var key = _config["OpenAI:Key"] ?? "";
@@ -47,6 +51,16 @@ namespace OpenAIServiceGpt4o.Controllers
       {
         var completion = await chatClient.CompleteChatAsync(messages, RequestOptions);
         var response = FromCompletion(completion.Value);
+
+        var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
+          ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+          var fullMessages = request.Messages.Concat(response.Messages).ToList();
+          var chatId = await _chatService.SaveChatAsync(email, request.ChatId, fullMessages, cancellationToken);
+          response.ChatId = chatId;
+        }
+
         return Ok(response);
       }
       catch (ClientResultException ex)

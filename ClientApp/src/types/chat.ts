@@ -16,8 +16,10 @@ export interface ChatDisplayMessage extends ChatMessage {
 
 export interface ChatRequest {
   messages: ChatMessage[];
+  chatId?: number | null;
 }
 
 export interface ChatResponse {
+  chatId: number;
   messages: ChatMessage[];
 }

@@ -19,6 +19,7 @@ import { MemoryModal } from "components/MemoryModal";
 import { Toolbar } from "components/Toolbar";
 export const Home = () => {
   const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [memory, setMemory] = useState(() => getStoredMemory());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -106,8 +107,9 @@ export const Home = () => {
       setLastSentWords(sentInCall);
       setTotalSentWords((prev) => prev + sentInCall);
 
-      const response = await postChat(requestMessages);
+      const response = await postChat(requestMessages, currentChatId);
 
+      setCurrentChatId(response.chatId);
       const newDisplay: ChatDisplayMessage[] = response.messages
         .filter((m) => m.role === "assistant")
         .map((m) => ({ ...m, displayType: DisplayMessageType.Normal }));
@@ -128,7 +130,7 @@ export const Home = () => {
     finally {
       setLoading(false);
     }
-  }, [input, loading, buildRequestMessages]);
+  }, [input, loading, buildRequestMessages, currentChatId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
