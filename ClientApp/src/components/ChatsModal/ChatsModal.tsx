@@ -2,9 +2,8 @@ import React, { useEffect, useState } from "react";
 import { getChats, deleteChat } from "functions";
 import type { ChatListItem as ChatListItemType } from "types";
 import { formatChatUpdate } from "utils/formatting";
-import { Button } from "components/Button";
+import { Button, CONFIRM_DELETE_MESSAGE, ConfirmationModal, Modal } from "components";
 import { TrashIcon } from "icons";
-import * as Modal from "components/Modal";
 import * as Styled from "./ChatsModal.styles";
 
 interface ChatsModalProps {
@@ -19,6 +18,7 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
   const [list, setList] = useState<ChatListItemType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteChatId, setPendingDeleteChatId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -43,8 +43,17 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
     onClose();
   };
 
-  const handleDelete = (e: React.MouseEvent, chatId: number) => {
+  const handleDeleteClick = (e: React.MouseEvent, chatId: number) => {
     e.stopPropagation();
+    setPendingDeleteChatId(chatId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (pendingDeleteChatId === null)
+      return;
+
+    const chatId = pendingDeleteChatId;
+    setPendingDeleteChatId(null);
     deleteChat(chatId)
       .then(() => {
         setList((prev) => prev.filter((c) => c.chatId !== chatId));
@@ -74,7 +83,7 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
                   </Styled.ChatItemContent>
                   <Styled.DeleteButton
                     type="button"
-                    onClick={(e) => handleDelete(e, chat.chatId)}
+                    onClick={(e) => handleDeleteClick(e, chat.chatId)}
                     title="Delete chat"
                   >
                     <TrashIcon />
@@ -95,6 +104,12 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
           </Button>
         </Modal.ModalFooter>
       </Modal.Modal>
+      <ConfirmationModal
+        open={pendingDeleteChatId !== null}
+        message={CONFIRM_DELETE_MESSAGE}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDeleteChatId(null)}
+      />
     </Modal.Overlay>
   );
 };

@@ -18,6 +18,7 @@ export const ENDPOINTS = {
   chats: {
     list: `${API_ORIGIN}/api/chats`,
     get: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
+    put: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
     delete: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
   },
 };

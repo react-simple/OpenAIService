@@ -6,6 +6,14 @@ export const Layout = styled.div`
   height: 100vh;
   max-width: 800px;
   margin: 0 auto;
+
+  @media (min-width: 1024px) {
+    max-width: 1200px;
+  }
+
+  @media (min-width: 1920px) {
+    max-width: 1600px;
+  }
 `;
 
 export const MessageList = styled.div<{ $fontSizePx: number }>`
@@ -26,6 +34,12 @@ export const MessageBlock = styled.div<{ $align: "start" | "end" }>`
   gap: 0.35rem;
   max-width: 85%;
   width: fit-content;
+`;
+
+export const MessageActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 `;
 
 export const MessageBubble = styled.div<{ $variant: "user" | "assistant" | "error" }>`
@@ -55,6 +69,10 @@ export const TextArea = styled.textarea`
   resize: vertical;
   font-family: inherit;
   box-sizing: border-box;
+
+  @media (max-width: 480px) {
+    min-height: 88px;
+  }
 
   &:focus {
     outline: none;

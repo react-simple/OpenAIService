@@ -15,5 +15,8 @@ namespace OpenAIServiceGpt4o.Services
 
     /// <summary>Deletes the chat for the user. Returns true if a row was deleted.</summary>
     Task<bool> DeleteChatAsync(string email, int chatId, CancellationToken cancellationToken = default);
+
+    /// <summary>Updates only the chat content and ChatUpdate timestamp. Returns true if the chat existed and was updated.</summary>
+    Task<bool> UpdateChatContentAsync(string email, int chatId, IReadOnlyList<ChatMessageDto> content, CancellationToken cancellationToken = default);
   }
 }

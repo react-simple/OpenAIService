@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { countWords, formatWithSuffix } from "utils";
 import { copyToClipboard } from "utils";
-import { Button } from "components/Button";
-import { CopyButton } from "components/CopyButton";
+import { Button, CopyButton, Modal } from "components";
 import { CopyIcon } from "icons";
-import * as Modal from "components/Modal";
 
 interface MemoryModalProps {
   open: boolean;

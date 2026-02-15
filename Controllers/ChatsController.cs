@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenAIServiceGpt4o.Models;
 using OpenAIServiceGpt4o.Services;
 
 namespace OpenAIServiceGpt4o.Controllers
@@ -59,6 +60,23 @@ namespace OpenAIServiceGpt4o.Controllers
       var deleted = await _chatService.DeleteChatAsync(email, id, cancellationToken).ConfigureAwait(false);
 
       if (!deleted)
+        return NotFound();
+
+      return NoContent();
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Put(int id, [FromBody] ChatRequest request, CancellationToken cancellationToken)
+    {
+      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
+        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+
+      if (string.IsNullOrWhiteSpace(email))
+        return Unauthorized();
+
+      var updated = await _chatService.UpdateChatContentAsync(email, id, request.Messages, cancellationToken).ConfigureAwait(false);
+
+      if (!updated)
         return NotFound();
 
       return NoContent();

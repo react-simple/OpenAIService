@@ -1,6 +1,5 @@
 import React from "react";
-import { Button } from "components/Button";
-import { CopyButton } from "components/CopyButton";
+import { Button, CopyButton } from "components";
 import { LogoutIcon } from "icons";
 import { useAuth } from "contexts/AuthContext";
 import * as ToolbarStyled from "./Toolbar.styles";

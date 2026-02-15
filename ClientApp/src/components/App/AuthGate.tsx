@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "contexts/AuthContext";
-import { Button } from "components/Button";
+import { Button } from "components";
 
 export const AuthGate = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading, login } = useAuth();

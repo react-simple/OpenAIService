@@ -148,6 +148,36 @@ namespace OpenAIServiceGpt4o.Services
       return rows > 0;
     }
 
+    public async Task<bool> UpdateChatContentAsync(string email, int chatId, IReadOnlyList<ChatMessageDto> content, CancellationToken cancellationToken = default)
+    {
+      if (string.IsNullOrWhiteSpace(email) || chatId <= 0)
+        return false;
+
+      var chat = await GetChatAsync(email, chatId, cancellationToken).ConfigureAwait(false);
+
+      if (chat.ChatId != chatId)
+        return false;
+
+      var now = DateTime.UtcNow;
+      chat.ChatUpdate = now;
+      chat.Content = content.Count > 0 ? content.ToArray() : null;
+
+      await using var connection = new SqlConnection(_connectionString);
+      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+      await using var cmd = new SqlCommand(
+        @"UPDATE [dbo].[Chat] SET [Content] = @Content, [ChatUpdate] = @ChatUpdate
+          WHERE [ChatId] = @ChatId AND [Email] = @Email;",
+        connection);
+      cmd.Parameters.AddWithValue("@ChatId", chatId);
+      cmd.Parameters.AddWithValue("@Email", email);
+      cmd.Parameters.AddWithValue("@Content", chat.Content is null or { Length: 0 } ? DBNull.Value : JsonSerializer.Serialize(chat.Content, JsonOptions));
+      cmd.Parameters.AddWithValue("@ChatUpdate", chat.ChatUpdate);
+
+      var rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+      return rows > 0;
+    }
+
     private static Chat NewUnsavedChat(string email)
     {
       var now = DateTime.UtcNow;
