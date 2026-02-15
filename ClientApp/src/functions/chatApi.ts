@@ -3,7 +3,10 @@ import type { ChatMessage, ChatRequest, ChatResponse } from "types";
 
 export async function postChat(messages: ChatMessage[], chatId?: number | null): Promise<ChatResponse> {
   const body: ChatRequest = { messages };
-  if (chatId != null) body.chatId = chatId;
+
+  if (chatId != null)
+    body.chatId = chatId;
+
   const res = await fetch(ENDPOINTS.chat.post, {
     method: "POST",
     credentials: "include",

@@ -49,7 +49,9 @@ export const Home = () => {
   useEffect(() => {
     getMemory()
       .then((data) => {
-        if (data.content !== null) setMemory(data.content);
+
+        if (data.content !== null)
+          setMemory(data.content);
       })
       .catch(() => {});
   }, []);
@@ -81,19 +83,27 @@ export const Home = () => {
 
   const buildRequestMessages = useCallback((): ChatMessage[] => {
     const msgs: ChatMessage[] = [];
-    if (memory.trim()) msgs.push({ role: "system", content: memory.trim() });
+
+    if (memory.trim())
+      msgs.push({ role: "system", content: memory.trim() });
 
     chatHistory.forEach((m) => {
-      if (m.displayType !== DisplayMessageType.Normal) return;
 
-      if (m.role === "user" || m.role === "assistant") msgs.push({ role: m.role, content: m.content });
+      if (m.displayType !== DisplayMessageType.Normal)
+        return;
+
+      if (m.role === "user" || m.role === "assistant")
+        msgs.push({ role: m.role, content: m.content });
     });
+
     return msgs;
   }, [memory, chatHistory]);
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
-    if (!text || loading) return;
+
+    if (!text || loading)
+      return;
 
     const userMessage: ChatDisplayMessage = { role: "user", content: text, displayType: DisplayMessageType.Normal };
     setChatHistory((prev) => [...prev, userMessage]);
@@ -133,6 +143,7 @@ export const Home = () => {
   }, [input, loading, buildRequestMessages, currentChatId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();

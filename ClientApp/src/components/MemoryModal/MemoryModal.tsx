@@ -17,10 +17,13 @@ export const MemoryModal = ({ open, onClose, initialValue, onSave }: MemoryModal
   const [draft, setDraft] = useState(initialValue);
 
   useEffect(() => {
-    if (open) setDraft(initialValue);
+
+    if (open)
+      setDraft(initialValue);
   }, [open, initialValue]);
 
-  if (!open) return null;
+  if (!open)
+    return null;
 
   const handleSave = () => {
     onSave(draft);

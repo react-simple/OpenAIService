@@ -34,6 +34,12 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpPost("chat")]
     public async Task<ActionResult<ChatResponse>> PostChat([FromBody] ChatRequest request, CancellationToken cancellationToken)
     {
+      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
+        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+
+      if (string.IsNullOrWhiteSpace(email))
+        return Unauthorized();
+
       var endpoint = _config["OpenAI:Endpoint"] ?? "";
       var key = _config["OpenAI:Key"] ?? "";
       var model = _config["OpenAI:ModelName"] ?? "";
@@ -41,9 +47,8 @@ namespace OpenAIServiceGpt4o.Controllers
       if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(model))
         return StatusCode(500, "Azure OpenAI is not configured (OpenAI:Endpoint, OpenAI:Key, OpenAI:ModelName).");
 
-      var credential = new ApiKeyCredential(key);
-      var azureClient = new AzureOpenAIClient(new Uri(endpoint), credential);
-      var chatClient = azureClient.GetChatClient(model);
+      var chatClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(key)).GetChatClient(model);
+      var chat = await _chatService.GetChatAsync(email, request.ChatId, cancellationToken);
 
       var messages = ToChatMessages(request.Messages);
 
@@ -52,15 +57,13 @@ namespace OpenAIServiceGpt4o.Controllers
         var completion = await chatClient.CompleteChatAsync(messages, RequestOptions);
         var response = FromCompletion(completion.Value);
 
-        var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-          ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
-        if (!string.IsNullOrWhiteSpace(email))
-        {
-          var fullMessages = request.Messages.Concat(response.Messages).ToList();
-          var chatId = await _chatService.SaveChatAsync(email, request.ChatId, fullMessages, cancellationToken);
-          response.ChatId = chatId;
-        }
+        var fullMessages = request.Messages.Concat(response.Messages).ToList();
+        chat.Content = fullMessages.Count > 0 ? fullMessages.ToArray() : null;
+        await _chatService.SaveChatAsync(chat, cancellationToken);
 
+        await TryGenerateAndSaveTitleAsync(chatClient, chat, fullMessages, cancellationToken);
+
+        response.ChatId = chat.ChatId;
         return Ok(response);
       }
       catch (ClientResultException ex)
@@ -102,6 +105,68 @@ namespace OpenAIServiceGpt4o.Controllers
         response.Messages.Add(new ChatMessageDto { Role = ChatRole.Assistant, Content = assistantContent });
 
       return response;
+    }
+
+    private async Task TryGenerateAndSaveTitleAsync(
+      ChatClient chatClient,
+      Chat chat,
+      IReadOnlyList<ChatMessageDto> fullMessages,
+      CancellationToken cancellationToken)
+    {
+      var defaultTitle = "Chat #" + chat.ChatId;
+
+      if (chat.Title != defaultTitle)
+        return;
+
+      var userMessages = fullMessages.Where(m => m.Role == ChatRole.User).ToList();
+      var userOnlyLength = userMessages.Sum(m => (m.Content ?? "").Length);
+      var userMessageCount = userMessages.Count;
+
+      if (userOnlyLength < Constants.MinUserCharsForTitle && userMessageCount < Constants.MinUserMessagesForTitle)
+        return;
+
+      var conversationText = FormatConversationForTitle(fullMessages);
+
+      var titleMessages = new List<ChatMessage>
+      {
+        new SystemChatMessage(Constants.ChatTitleGenerationSystemMessage),
+        new UserChatMessage(conversationText)
+      };
+
+      try
+      {
+        var completion = await chatClient.CompleteChatAsync(titleMessages, RequestOptions);
+        var title = string.Join(" ", completion.Value.Content.Select(c => c.Text ?? "")).Trim();
+
+        if (string.IsNullOrEmpty(title))
+          return;
+
+        if (title.Length > Constants.MaxChatTitleLength)
+          title = title[..Constants.MaxChatTitleLength];
+
+        chat.Title = title;
+        await _chatService.SaveChatAsync(chat, cancellationToken);
+      }
+      catch
+      {
+        // Keep default title on failure
+      }
+    }
+
+    private static string FormatConversationForTitle(IReadOnlyList<ChatMessageDto> messages)
+    {
+      var parts = new List<string>();
+
+      foreach (var m in messages)
+      {
+        if (m.Role == ChatRole.System)
+          continue;
+
+        var role = m.Role == ChatRole.User ? "User" : "Assistant";
+        parts.Add($"{role}: {m.Content?.Trim() ?? ""}");
+      }
+
+      return string.Join("\n\n", parts);
     }
   }
 }

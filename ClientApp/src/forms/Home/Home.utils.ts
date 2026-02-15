@@ -18,7 +18,9 @@ export function getStoredMemory(): string {
 export function getStoredFontSize(): number {
   try {
     const n = parseInt(localStorage.getItem(FONT_SIZE_STORAGE_KEY) ?? "", 10);
-    if (!Number.isNaN(n) && n >= FONT_SIZE_MIN && n <= FONT_SIZE_MAX) return n;
+
+    if (!Number.isNaN(n) && n >= FONT_SIZE_MIN && n <= FONT_SIZE_MAX)
+      return n;
   }
   catch {
     // ignore

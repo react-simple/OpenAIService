@@ -3,7 +3,10 @@ export const stringCompare = (s1: string, s2: string) => {
 };
 
 export function countWords(text: string): number {
-  if (!text.trim()) return 0;
+
+  if (!text.trim())
+    return 0;
+
   return text
     .split(/\s+|[,\u2014\u2013\-;:.!?()]+/)
     .filter((s) => s.length > 0).length;

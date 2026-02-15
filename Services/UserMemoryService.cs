@@ -26,8 +26,10 @@ namespace OpenAIServiceGpt4o.Services
       cmd.Parameters.AddWithValue("@Email", email);
 
       var value = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+
       if (value == null || value == DBNull.Value)
         return null;
+
       return (string)value;
     }
 

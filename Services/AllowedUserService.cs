@@ -22,6 +22,7 @@ namespace OpenAIServiceGpt4o.Services
         return false;
 
       var key = CacheKeyPrefix + email.Trim().ToLowerInvariant();
+
       if (allowCached && _cache.TryGetValue(key, out bool cached))
         return cached;
 
