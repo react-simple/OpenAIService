@@ -47,10 +47,27 @@ export const MessageBubble = styled.div<{ $variant: "user" | "assistant" | "erro
   border-radius: 12px;
   white-space: pre-wrap;
   word-break: break-word;
+  line-height: 1.5em;
   background: ${(p) =>
     p.$variant === "user" ? "#0a7cff" : p.$variant === "error" ? "#fef2f2" : "#e5e7eb"};
   color: ${(p) => (p.$variant === "user" ? "white" : p.$variant === "error" ? "#dc2626" : "#111")};
   border: ${(p) => (p.$variant === "error" ? "1px solid #fecaca" : "none")};
+`;
+
+export const LoadingSpinner = styled.div`
+  align-self: flex-start;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #0a7cff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 `;
 
 export const InputArea = styled.div`

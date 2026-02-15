@@ -273,6 +273,7 @@ export const Home = () => {
             </Styled.MessageBlock>
           );
         })}
+        {loading && <Styled.LoadingSpinner />}
       </Styled.MessageList>
 
       <Styled.InputArea>
