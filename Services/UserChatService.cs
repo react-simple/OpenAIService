@@ -54,6 +54,28 @@ namespace OpenAIServiceGpt4o.Services
       };
     }
 
+    public async Task<IReadOnlyList<ChatListItemDto>> GetChatListAsync(string email, CancellationToken cancellationToken = default)
+    {
+      if (string.IsNullOrWhiteSpace(email))
+        return Array.Empty<ChatListItemDto>();
+
+      await using var connection = new SqlConnection(_connectionString);
+      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+      await using var cmd = new SqlCommand(
+        "SELECT [ChatId], [Title], [ChatUpdate] FROM [dbo].[Chat] WHERE [Email] = @Email ORDER BY [ChatUpdate] DESC;",
+        connection);
+      cmd.Parameters.AddWithValue("@Email", email);
+
+      var list = new List<ChatListItemDto>();
+      await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+
+      while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        list.Add(new ChatListItemDto { ChatId = reader.GetInt32(0), Title = reader.GetString(1), ChatUpdate = reader.GetDateTime(2) });
+
+      return list;
+    }
+
     public async Task SaveChatAsync(Chat chat, CancellationToken cancellationToken = default)
     {
       if (string.IsNullOrWhiteSpace(chat.Email))
@@ -103,6 +125,27 @@ namespace OpenAIServiceGpt4o.Services
       updateCmd.Parameters.AddWithValue("@Title", chat.Title.Trim());
 
       await updateCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<bool> DeleteChatAsync(string email, int chatId, CancellationToken cancellationToken = default)
+    {
+      if (string.IsNullOrWhiteSpace(email))
+        return false;
+
+      if (chatId <= 0)
+        return false;
+
+      await using var connection = new SqlConnection(_connectionString);
+      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+      await using var cmd = new SqlCommand(
+        "DELETE FROM [dbo].[Chat] WHERE [Email] = @Email AND [ChatId] = @ChatId;",
+        connection);
+      cmd.Parameters.AddWithValue("@Email", email);
+      cmd.Parameters.AddWithValue("@ChatId", chatId);
+
+      var rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+      return rows > 0;
     }
 
     private static Chat NewUnsavedChat(string email)

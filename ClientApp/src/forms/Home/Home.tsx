@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { postChat, getMemory, putMemory } from "functions";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { postChat, getMemory, putMemory, getChat } from "functions";
 import type { ChatMessage, ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
 import { countWords, formatWithSuffix } from "utils";
@@ -15,6 +15,7 @@ import { getStoredMemory, getStoredFontSize } from "./Home.utils";
 import { Button } from "components/Button";
 import { CopyButton } from "components/CopyButton";
 import { CopyIcon } from "icons";
+import { ChatsModal } from "components/ChatsModal";
 import { MemoryModal } from "components/MemoryModal";
 import { Toolbar } from "components/Toolbar";
 export const Home = () => {
@@ -24,11 +25,17 @@ export const Home = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [memoryModalOpen, setMemoryModalOpen] = useState(false);
+  const [chatsModalOpen, setChatsModalOpen] = useState(false);
   const [lastSentWords, setLastSentWords] = useState(0);
   const [lastReceivedWords, setLastReceivedWords] = useState(0);
   const [totalSentWords, setTotalSentWords] = useState(0);
   const [totalReceivedWords, setTotalReceivedWords] = useState(0);
   const [fontSize, setFontSize] = useState(() => getStoredFontSize());
+  const messageListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
+  }, [chatHistory]);
 
   const closeMemoryModal = useCallback(() => {
     setMemoryModalOpen(false);
@@ -44,6 +51,35 @@ export const Home = () => {
         setMemory(content);
         setMemoryModalOpen(false);
       });
+  }, []);
+
+  const loadSelectedChat = useCallback((chatId: number) => {
+    getChat(chatId).then((chat) => {
+      const content = chat.content ?? [];
+      // Only Normal entries are saved to the DB, so no need to filter by role.
+      const displayHistory: ChatDisplayMessage[] = content.map((m) => ({
+        ...m,
+        displayType: DisplayMessageType.Normal,
+      }));
+
+      setChatHistory(displayHistory);
+      setCurrentChatId(chat.chatId);
+      setLastSentWords(0);
+      setLastReceivedWords(0);
+      setTotalSentWords(0);
+      setTotalReceivedWords(0);
+      setChatsModalOpen(false);
+    });
+  }, []);
+
+  const startNewChat = useCallback(() => {
+    setChatHistory([]);
+    setCurrentChatId(null);
+    setLastSentWords(0);
+    setLastReceivedWords(0);
+    setTotalSentWords(0);
+    setTotalReceivedWords(0);
+    setChatsModalOpen(false);
   }, []);
 
   useEffect(() => {
@@ -87,10 +123,8 @@ export const Home = () => {
     if (memory.trim())
       msgs.push({ role: "system", content: memory.trim() });
 
-    chatHistory.forEach((m) => {
-
-      if (m.displayType !== DisplayMessageType.Normal)
-        return;
+    const normalEntries = chatHistory.filter((m) => m.displayType === DisplayMessageType.Normal);
+    normalEntries.forEach((m) => {
 
       if (m.role === "user" || m.role === "assistant")
         msgs.push({ role: m.role, content: m.content });
@@ -158,7 +192,7 @@ export const Home = () => {
         onIncrease={increaseFontSize}
         onReset={resetFontSize}
       />
-      <Styled.MessageList $fontSizePx={fontSize}>
+      <Styled.MessageList ref={messageListRef} $fontSizePx={fontSize}>
         {chatHistory.map((msg, i) => {
           const variant =
             msg.displayType === DisplayMessageType.Error
@@ -192,6 +226,9 @@ export const Home = () => {
           <Styled.SentReceivedLabel>
             Sent: {formatWithSuffix(lastSentWords)} ({formatWithSuffix(totalSentWords)} total) &nbsp; Received: {formatWithSuffix(lastReceivedWords)} ({formatWithSuffix(totalReceivedWords)} total)
           </Styled.SentReceivedLabel>
+          <Button type="button" onClick={() => setChatsModalOpen(true)}>
+            Chats
+          </Button>
           <Button type="button" onClick={() => setMemoryModalOpen(true)}>
             Memory ({countWords(memory)})
           </Button>
@@ -201,6 +238,13 @@ export const Home = () => {
         </Styled.SendRow>
       </Styled.InputArea>
 
+      <ChatsModal
+        open={chatsModalOpen}
+        onClose={() => setChatsModalOpen(false)}
+        onSelectChat={loadSelectedChat}
+        onNewChat={startNewChat}
+        currentChatId={currentChatId}
+      />
       <MemoryModal
         open={memoryModalOpen}
         onClose={closeMemoryModal}

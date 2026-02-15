@@ -1,0 +1,67 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using OpenAIServiceGpt4o.Services;
+
+namespace OpenAIServiceGpt4o.Controllers
+{
+  [ApiController]
+  [Route("api/chats")]
+  [Authorize]
+  public class ChatsController : ControllerBase
+  {
+    private readonly IUserChatService _chatService;
+
+    public ChatsController(IUserChatService chatService)
+    {
+      _chatService = chatService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    {
+      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
+        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+
+      if (string.IsNullOrWhiteSpace(email))
+        return Unauthorized();
+
+      var list = await _chatService.GetChatListAsync(email, cancellationToken).ConfigureAwait(false);
+      return Ok(list);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
+    {
+      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
+        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+
+      if (string.IsNullOrWhiteSpace(email))
+        return Unauthorized();
+
+      var chat = await _chatService.GetChatAsync(email, id, cancellationToken).ConfigureAwait(false);
+
+      if (chat.ChatId != id)
+        return NotFound();
+
+      return Ok(chat);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
+        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+
+      if (string.IsNullOrWhiteSpace(email))
+        return Unauthorized();
+
+      var deleted = await _chatService.DeleteChatAsync(email, id, cancellationToken).ConfigureAwait(false);
+
+      if (!deleted)
+        return NotFound();
+
+      return NoContent();
+    }
+  }
+}

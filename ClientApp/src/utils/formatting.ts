@@ -21,3 +21,16 @@ export function formatWithSuffix(n: number): string {
 
   return String(n);
 }
+
+export function formatChatUpdate(chatUpdate: string | Date): string {
+  try {
+    const d = typeof chatUpdate === "string" ? new Date(chatUpdate) : chatUpdate;
+    return d.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  }
+  catch {
+    return String(chatUpdate);
+  }
+}

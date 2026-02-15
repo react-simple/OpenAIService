@@ -23,3 +23,16 @@ export interface ChatResponse {
   chatId: number;
   messages: ChatMessage[];
 }
+
+export interface ChatListItem {
+  chatId: number;
+  title: string;
+  chatUpdate: string | Date;
+}
+
+export interface ChatDto {
+  chatId: number;
+  title: string;
+  chatUpdate: string | Date;
+  content: ChatMessage[] | null;
+}

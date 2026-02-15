@@ -15,4 +15,9 @@ export const ENDPOINTS = {
     get: `${API_ORIGIN}/api/memory`,
     put: `${API_ORIGIN}/api/memory`,
   },
+  chats: {
+    list: `${API_ORIGIN}/api/chats`,
+    get: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
+    delete: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
+  },
 };

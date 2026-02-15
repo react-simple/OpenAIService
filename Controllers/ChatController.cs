@@ -11,6 +11,7 @@ namespace OpenAIServiceGpt4o.Controllers
 {
   [ApiController]
   [Route("api")]
+  [Authorize]
   public class ChatController : ControllerBase
   {
     private readonly IConfiguration _config;
@@ -30,7 +31,6 @@ namespace OpenAIServiceGpt4o.Controllers
       PresencePenalty = 0f
     };
 
-    [Authorize]
     [HttpPost("chat")]
     public async Task<ActionResult<ChatResponse>> PostChat([FromBody] ChatRequest request, CancellationToken cancellationToken)
     {

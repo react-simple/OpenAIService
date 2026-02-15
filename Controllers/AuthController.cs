@@ -7,6 +7,7 @@ namespace OpenAIServiceGpt4o.Controllers
 {
   [ApiController]
   [Route("api/auth")]
+  [Authorize]
   public class AuthController : ControllerBase
   {
     private readonly IConfiguration _config;
@@ -16,6 +17,7 @@ namespace OpenAIServiceGpt4o.Controllers
       _config = config;
     }
 
+    [AllowAnonymous]
     [HttpGet("login")]
     public IActionResult Login()
     {
@@ -24,7 +26,6 @@ namespace OpenAIServiceGpt4o.Controllers
       return Challenge(new AuthenticationProperties { RedirectUri = frontendUrl }, GoogleDefaults.AuthenticationScheme);
     }
 
-    [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
     {
@@ -37,6 +38,7 @@ namespace OpenAIServiceGpt4o.Controllers
       return Ok(new { email });
     }
 
+    [AllowAnonymous]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
