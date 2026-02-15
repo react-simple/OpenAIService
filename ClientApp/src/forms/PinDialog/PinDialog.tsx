@@ -82,7 +82,8 @@ export const PinDialog = ({ onValidate }: PinDialogProps) => {
                   key={i}
                   ref={(el) => { inputRefs.current[i] = el; }}
                   type="text"
-                  inputMode="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   autoComplete="off"
                   autoFocus={i === 0}
                   value={pin[i] ?? ""}
