@@ -33,6 +33,7 @@
     <Build Include="Users\CreateUser_TRMOpenAIService.sql" />
     <Build Include="Tables\Error.sql" />
     <Build Include="Scripts\AddUserDateColumns.sql" />
+    <Build Include="Scripts\AddForeignKeys.sql" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Tables\" />
