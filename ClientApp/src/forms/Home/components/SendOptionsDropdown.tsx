@@ -1,20 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "icons";
-import * as Styled from "./Home.styles";
+import * as Styled from "../Home.styles";
+import type { SendOptions } from "../Home.types";
 
 interface SendOptionsDropdownProps {
-  includeResponses: boolean;
-  includeMemory: boolean;
-  onIncludeResponsesChange: (value: boolean) => void;
-  onIncludeMemoryChange: (value: boolean) => void;
+  options: SendOptions;
+  onOptionsChange: (next: Partial<SendOptions>) => void;
   disabled?: boolean;
 }
 
 export const SendOptionsDropdown = ({
-  includeResponses,
-  includeMemory,
-  onIncludeResponsesChange,
-  onIncludeMemoryChange,
+  options,
+  onOptionsChange,
   disabled = false,
 }: SendOptionsDropdownProps) => {
   const [open, setOpen] = useState(false);
@@ -59,16 +56,16 @@ export const SendOptionsDropdown = ({
           <Styled.CheckboxLabel>
             <input
               type="checkbox"
-              checked={includeResponses}
-              onChange={(e) => onIncludeResponsesChange(e.target.checked)}
+              checked={options.includeResponses}
+              onChange={(e) => onOptionsChange({ includeResponses: e.target.checked })}
             />
             Include responses
           </Styled.CheckboxLabel>
           <Styled.CheckboxLabel>
             <input
               type="checkbox"
-              checked={includeMemory}
-              onChange={(e) => onIncludeMemoryChange(e.target.checked)}
+              checked={options.includeMemory}
+              onChange={(e) => onOptionsChange({ includeMemory: e.target.checked })}
             />
             Include memory
           </Styled.CheckboxLabel>

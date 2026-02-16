@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import type { ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
-import * as Styled from "./Home.styles";
+import * as Styled from "../Home.styles";
 import { CopyButton } from "components";
 import { CopyIcon, RefreshIcon, TrashIcon } from "icons";
 

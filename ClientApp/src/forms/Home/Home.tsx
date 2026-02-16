@@ -7,11 +7,14 @@ import * as Styled from "./Home.styles";
 import { copyToClipboard } from "utils";
 import { getStoredMemory } from "./Home.utils";
 import { Button, Toolbar, useFontSize } from "components";
-import { ChatsButtonAndModal } from "./ChatsButtonAndModal";
-import { ConfirmDeleteMessageModal } from "./ConfirmDeleteMessageModal";
-import { MemoryButtonAndModal } from "./MemoryButtonAndModal";
-import { MessageList } from "./MessageList";
-import { SendOptionsDropdown } from "./SendOptionsDropdown";
+import {
+  ChatsButtonAndModal,
+  ConfirmDeleteMessageModal,
+  MemoryButtonAndModal,
+  MessageList,
+  SendOptionsDropdown,
+} from "./components";
+import type { SendOptions, WordCounts } from "./Home.types";
 
 export const Home = () => {
   const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
@@ -20,12 +23,13 @@ export const Home = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [messageIndexToDelete, setMessageIndexToDelete] = useState<number | null>(null);
-  const [lastSentWords, setLastSentWords] = useState(0);
-  const [lastReceivedWords, setLastReceivedWords] = useState(0);
-  const [totalSentWords, setTotalSentWords] = useState(0);
-  const [totalReceivedWords, setTotalReceivedWords] = useState(0);
-  const [includeResponses, setIncludeResponses] = useState(true);
-  const [includeMemory, setIncludeMemory] = useState(true);
+  const [wordCounts, setWordCounts] = useState<WordCounts>({
+    lastSent: 0,
+    lastReceived: 0,
+    totalSent: 0,
+    totalReceived: 0,
+  });
+  const [sendOptions, setSendOptions] = useState<SendOptions>({ includeResponses: true, includeMemory: true });
   const hasLoadedLastChat = useRef(false);
 
   const loadSelectedChat = useCallback((chatId: number) => {
@@ -39,10 +43,7 @@ export const Home = () => {
 
       setChatHistory(displayHistory);
       setCurrentChatId(chat.chatId);
-      setLastSentWords(0);
-      setLastReceivedWords(0);
-      setTotalSentWords(0);
-      setTotalReceivedWords(0);
+      setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
     });
   }, []);
 
@@ -62,10 +63,7 @@ export const Home = () => {
   const startNewChat = useCallback(() => {
     setChatHistory([]);
     setCurrentChatId(null);
-    setLastSentWords(0);
-    setLastReceivedWords(0);
-    setTotalSentWords(0);
-    setTotalReceivedWords(0);
+    setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
   }, []);
 
   useEffect(() => {
@@ -113,10 +111,9 @@ export const Home = () => {
       const requestMessages = buildRequestMessages();
       requestMessages.push({ role: "user", content: text });
       const sentInCall = requestMessages.reduce((sum, m) => sum + countWords(m.content), 0);
-      setLastSentWords(sentInCall);
-      setTotalSentWords((prev) => prev + sentInCall);
+      setWordCounts((prev) => ({ ...prev, lastSent: sentInCall, totalSent: prev.totalSent + sentInCall }));
 
-      const response = await postChat(requestMessages, currentChatId, includeResponses, includeMemory);
+      const response = await postChat(requestMessages, currentChatId, sendOptions.includeResponses, sendOptions.includeMemory);
 
       setCurrentChatId(response.chatId);
       const newDisplay: ChatDisplayMessage[] = response.messages
@@ -124,12 +121,11 @@ export const Home = () => {
         .map((m) => ({ ...m, displayType: DisplayMessageType.Normal }));
 
       const receivedInCall = newDisplay.reduce((sum, m) => sum + countWords(m.content), 0);
-      setLastReceivedWords(receivedInCall);
-      setTotalReceivedWords((prev) => prev + receivedInCall);
+      setWordCounts((prev) => ({ ...prev, lastReceived: receivedInCall, totalReceived: prev.totalReceived + receivedInCall }));
       setChatHistory((prev) => [...prev, ...newDisplay]);
     }
     catch (e) {
-      setLastReceivedWords(0);
+      setWordCounts((prev) => ({ ...prev, lastReceived: 0 }));
       const errorContent = e instanceof Error ? e.message : "Request failed";
       setChatHistory((prev) => [
         ...prev,
@@ -139,7 +135,7 @@ export const Home = () => {
     finally {
       setLoading(false);
     }
-  }, [input, loading, buildRequestMessages, currentChatId, includeResponses, includeMemory]);
+  }, [input, loading, buildRequestMessages, currentChatId, sendOptions]);
 
   const regenerateLastResponse = useCallback(async () => {
     if (loading || chatHistory.length === 0)
@@ -161,7 +157,7 @@ export const Home = () => {
 
     setLoading(true);
     try {
-      const response = await postChat(msgs, currentChatId, includeResponses, includeMemory);
+      const response = await postChat(msgs, currentChatId, sendOptions.includeResponses, sendOptions.includeMemory);
       setCurrentChatId(response.chatId);
       const newDisplay: ChatDisplayMessage[] = response.messages
         .filter((m) => m.role === "assistant")
@@ -178,7 +174,7 @@ export const Home = () => {
     finally {
       setLoading(false);
     }
-  }, [loading, chatHistory, memory, currentChatId, includeResponses, includeMemory]);
+  }, [loading, chatHistory, memory, currentChatId, sendOptions]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
 
@@ -231,7 +227,7 @@ export const Home = () => {
         />
         <Styled.SendRow>
           <Styled.SentReceivedLabel>
-            Sent: {formatWithSuffix(lastSentWords)} ({formatWithSuffix(totalSentWords)} total) &nbsp; Received: {formatWithSuffix(lastReceivedWords)} ({formatWithSuffix(totalReceivedWords)} total)
+            Sent: {formatWithSuffix(wordCounts.lastSent)} ({formatWithSuffix(wordCounts.totalSent)} total) &nbsp; Received: {formatWithSuffix(wordCounts.lastReceived)} ({formatWithSuffix(wordCounts.totalReceived)} total)
           </Styled.SentReceivedLabel>
           <ChatsButtonAndModal
             currentChatId={currentChatId}
@@ -243,10 +239,8 @@ export const Home = () => {
             {loading ? "Sending..." : "Send"}
           </Button>
           <SendOptionsDropdown
-            includeResponses={includeResponses}
-            includeMemory={includeMemory}
-            onIncludeResponsesChange={setIncludeResponses}
-            onIncludeMemoryChange={setIncludeMemory}
+            options={sendOptions}
+            onOptionsChange={(next) => setSendOptions((prev) => ({ ...prev, ...next }))}
             disabled={loading}
           />
         </Styled.SendRow>
