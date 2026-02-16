@@ -4,22 +4,17 @@ import { LogoutIcon } from "icons";
 import { useAuth } from "contexts/AuthContext";
 import * as ToolbarStyled from "./Toolbar.styles";
 import { FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_DEFAULT } from "consts";
+import { useFontSize } from "./FontSizeContext";
 
-interface ToolbarProps {
-  fontSize: number;
-  onDecrease: () => void;
-  onIncrease: () => void;
-  onReset: () => void;
-}
-
-export const Toolbar = ({ fontSize, onDecrease, onIncrease, onReset }: ToolbarProps) => {
+export const Toolbar = () => {
   const { user, logout } = useAuth();
+  const { fontSize, decreaseFontSize, increaseFontSize, resetFontSize } = useFontSize();
 
   return (
     <ToolbarStyled.Toolbar>
       <Button
         type="button"
-        onClick={onDecrease}
+        onClick={decreaseFontSize}
         disabled={fontSize <= FONT_SIZE_MIN}
         title="Decrease font size"
       >
@@ -27,7 +22,7 @@ export const Toolbar = ({ fontSize, onDecrease, onIncrease, onReset }: ToolbarPr
       </Button>
       <Button
         type="button"
-        onClick={onIncrease}
+        onClick={increaseFontSize}
         disabled={fontSize >= FONT_SIZE_MAX}
         title="Increase font size"
       >
@@ -35,7 +30,7 @@ export const Toolbar = ({ fontSize, onDecrease, onIncrease, onReset }: ToolbarPr
       </Button>
       <Button
         type="button"
-        onClick={onReset}
+        onClick={resetFontSize}
         disabled={fontSize === FONT_SIZE_DEFAULT}
         title="Reset font size"
       >

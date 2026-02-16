@@ -5,14 +5,8 @@ import { DisplayMessageType } from "types";
 import { countWords, formatWithSuffix } from "utils";
 import * as Styled from "./Home.styles";
 import { copyToClipboard } from "utils";
-import {
-  FONT_SIZE_STORAGE_KEY,
-  FONT_SIZE_MIN,
-  FONT_SIZE_MAX,
-  FONT_SIZE_DEFAULT,
-} from "consts";
-import { getStoredMemory, getStoredFontSize } from "./Home.utils";
-import { Button, Toolbar } from "components";
+import { getStoredMemory } from "./Home.utils";
+import { Button, Toolbar, useFontSize } from "components";
 import { ChatsButtonAndModal } from "./ChatsButtonAndModal";
 import { ConfirmDeleteMessageModal } from "./ConfirmDeleteMessageModal";
 import { MemoryButtonAndModal } from "./MemoryButtonAndModal";
@@ -30,7 +24,6 @@ export const Home = () => {
   const [lastReceivedWords, setLastReceivedWords] = useState(0);
   const [totalSentWords, setTotalSentWords] = useState(0);
   const [totalReceivedWords, setTotalReceivedWords] = useState(0);
-  const [fontSize, setFontSize] = useState(() => getStoredFontSize());
   const [includeResponses, setIncludeResponses] = useState(true);
   const [includeMemory, setIncludeMemory] = useState(true);
   const hasLoadedLastChat = useRef(false);
@@ -83,27 +76,6 @@ export const Home = () => {
           setMemory(data.content);
       })
       .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(fontSize));
-    }
-    catch {
-      // ignore
-    }
-  }, [fontSize]);
-
-  const decreaseFontSize = useCallback(() => {
-    setFontSize((prev) => Math.max(FONT_SIZE_MIN, prev - 1));
-  }, []);
-
-  const increaseFontSize = useCallback(() => {
-    setFontSize((prev) => Math.min(FONT_SIZE_MAX, prev + 1));
-  }, []);
-
-  const resetFontSize = useCallback(() => {
-    setFontSize(FONT_SIZE_DEFAULT);
   }, []);
 
   const handleCopyMessage = useCallback(async (content: string) => {
@@ -235,14 +207,11 @@ export const Home = () => {
     }
   }, [messageIndexToDelete, chatHistory, currentChatId, memory]);
 
+  const { fontSize } = useFontSize();
+
   return (
     <Styled.Layout>
-      <Toolbar
-        fontSize={fontSize}
-        onDecrease={decreaseFontSize}
-        onIncrease={increaseFontSize}
-        onReset={resetFontSize}
-      />
+      <Toolbar />
       <MessageList
         chatHistory={chatHistory}
         fontSize={fontSize}

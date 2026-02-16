@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppRoutes, AuthGate } from 'components';
+import { AppRoutes, AuthGate, FontSizeProvider } from 'components';
 import * as Styled from "App.styles";
 import { AuthProvider } from "contexts/AuthContext";
 
@@ -9,7 +9,9 @@ export const App = () => {
       <Styled.GlobalStyles />
       <AuthProvider>
         <AuthGate>
-          <AppRoutes />
+          <FontSizeProvider>
+            <AppRoutes />
+          </FontSizeProvider>
         </AuthGate>
       </AuthProvider>
     </div>
