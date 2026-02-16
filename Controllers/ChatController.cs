@@ -62,7 +62,7 @@ namespace OpenAIServiceGpt4o.Controllers
         var completion = await chatClient.CompleteChatAsync(messages, RequestOptions);
         var response = FromCompletion(completion.Value);
 
-        var fullMessages = request.Messages.Concat(response.Messages).ToList();
+        var fullMessages = request.Messages.Concat(response.Messages).Where(m => m.Role != ChatRole.System).ToList();
         chat.Content = fullMessages.Count > 0 ? fullMessages.ToArray() : null;
         await _chatService.SaveChatAsync(chat, cancellationToken);
 

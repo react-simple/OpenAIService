@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { putMemory } from "functions";
+import { putMemory } from "services";
 import { countWords, formatWithSuffix } from "utils";
 import { Button, MemoryModal } from "components";
 

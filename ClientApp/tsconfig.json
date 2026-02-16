@@ -27,13 +27,14 @@
       "components/*": [ "components/*" ],
       "consts/*": [ "consts/*" ],
       "forms/*": [ "forms/*" ],
-      "functions/*": [ "functions/*" ],
+      "services/*": [ "services/*" ],
       "hooks/*": [ "hooks/*" ],
       "icons/*": [ "icons/*" ],
       "utils/*": [ "utils/*" ],
       "types/*": [ "types/*" ],
       "consts": [ "consts/index.ts" ],
-      "functions": [ "functions/index.ts" ],
+      "services": [ "services/index.ts" ],
+      "hooks": [ "hooks/index.ts" ],
       "types": [ "types/index.ts" ],
       "utils": [ "utils/index.ts" ]
     }

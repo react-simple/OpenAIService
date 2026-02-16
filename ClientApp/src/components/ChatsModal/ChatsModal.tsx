@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { getChats, deleteChat } from "functions";
-import type { ChatListItem as ChatListItemType } from "types";
 import { formatChatUpdate } from "utils/formatting";
 import { Button, CONFIRM_DELETE_MESSAGE, ConfirmationModal, Modal } from "components";
+import { useChats } from "hooks";
 import { TrashIcon } from "icons";
 import * as Styled from "./ChatsModal.styles";
 
@@ -15,21 +14,15 @@ interface ChatsModalProps {
 }
 
 export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChatId = null }: ChatsModalProps) => {
-  const [list, setList] = useState<ChatListItemType[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { chats, loading, error, loadChats, deleteChat: deleteChatById } = useChats();
   const [pendingDeleteChatId, setPendingDeleteChatId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open)
+      return;
 
-    setLoading(true);
-    setError(null);
-    getChats()
-      .then(setList)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load chats"))
-      .finally(() => setLoading(false));
-  }, [open]);
+    loadChats();
+  }, [open, loadChats]);
 
   if (!open) return null;
 
@@ -54,13 +47,10 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
 
     const chatId = pendingDeleteChatId;
     setPendingDeleteChatId(null);
-    deleteChat(chatId)
-      .then(() => {
-        setList((prev) => prev.filter((c) => c.chatId !== chatId));
-        if (currentChatId === chatId)
-          onNewChat?.();
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to delete chat"));
+    deleteChatById(chatId).then(() => {
+      if (currentChatId === chatId)
+        onNewChat?.();
+    });
   };
 
   return (
@@ -72,10 +62,10 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
         <Modal.ModalBody>
           {loading && <p>Loading…</p>}
           {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
-          {!loading && !error && list.length === 0 && <p>No chats yet.</p>}
-          {!loading && !error && list.length > 0 && (
+          {!loading && !error && chats.length === 0 && <p>No chats yet.</p>}
+          {!loading && !error && chats.length > 0 && (
             <Styled.ChatList>
-              {list.map((chat) => (
+              {chats.map((chat) => (
                 <Styled.ChatListItem key={chat.chatId} onClick={() => handleSelect(chat.chatId)}>
                   <Styled.ChatItemContent>
                     <Styled.ChatTitle>{chat.title}</Styled.ChatTitle>

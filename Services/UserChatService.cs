@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Data.SqlClient;
@@ -43,6 +44,8 @@ namespace OpenAIServiceGpt4o.Services
         return NewUnsavedChat(email);
 
       var contentJson = reader.IsDBNull(5) ? null : reader.GetString(5);
+      var content = string.IsNullOrEmpty(contentJson) ? null : JsonSerializer.Deserialize<ChatMessageDto[]>(contentJson, JsonOptions);
+
       return new Chat
       {
         ChatId = reader.GetInt32(0),
@@ -50,7 +53,7 @@ namespace OpenAIServiceGpt4o.Services
         ChatStartDate = reader.GetDateTime(2),
         ChatUpdate = reader.GetDateTime(3),
         Title = reader.GetString(4),
-        Content = string.IsNullOrEmpty(contentJson) ? null : JsonSerializer.Deserialize<ChatMessageDto[]>(contentJson, JsonOptions),
+        Content = content?.Where(m => m.Role != ChatRole.System).ToArray(),
       };
     }
 
@@ -160,7 +163,7 @@ namespace OpenAIServiceGpt4o.Services
 
       var now = DateTime.UtcNow;
       chat.ChatUpdate = now;
-      chat.Content = content.Count > 0 ? content.ToArray() : null;
+      chat.Content = content.Count > 0 ? content.Where(m => m.Role != ChatRole.System).ToArray() : null;
 
       await using var connection = new SqlConnection(_connectionString);
       await connection.OpenAsync(cancellationToken).ConfigureAwait(false);

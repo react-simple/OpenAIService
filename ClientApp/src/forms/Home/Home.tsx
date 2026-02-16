@@ -1,12 +1,6 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { postChat, getMemory, getChat, getChats, putChat } from "functions";
-import type { ChatMessage, ChatDisplayMessage } from "types";
-import { DisplayMessageType } from "types";
-import { countWords, formatWithSuffix } from "utils";
+import React, { useState } from "react";
+import { formatWithSuffix } from "utils";
 import * as Styled from "./Home.styles";
-import { copyToClipboard } from "utils";
-import { getStoredMemory } from "./Home.utils";
-import { Button, Toolbar, useFontSize } from "components";
 import {
   ChatsButtonAndModal,
   ConfirmDeleteMessageModal,
@@ -14,194 +8,39 @@ import {
   MessageList,
   SendOptionsDropdown,
 } from "./components";
-import type { SendOptions, WordCounts } from "./Home.types";
+import { useChat } from "hooks";
+import { Button, Toolbar, useFontSize } from "components";
 
 export const Home = () => {
-  const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
-  const [currentChatId, setCurrentChatId] = useState<number | null>(null);
-  const [memory, setMemory] = useState(() => getStoredMemory());
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const [messageIndexToDelete, setMessageIndexToDelete] = useState<number | null>(null);
-  const [wordCounts, setWordCounts] = useState<WordCounts>({
-    lastSent: 0,
-    lastReceived: 0,
-    totalSent: 0,
-    totalReceived: 0,
-  });
-  const [sendOptions, setSendOptions] = useState<SendOptions>({ includeResponses: true, includeMemory: true });
-  const hasLoadedLastChat = useRef(false);
 
-  const loadSelectedChat = useCallback((chatId: number) => {
-    getChat(chatId).then((chat) => {
-      const content = chat.content ?? [];
-      // Only Normal entries are saved to the DB, so no need to filter by role.
-      const displayHistory: ChatDisplayMessage[] = content.map((m) => ({
-        ...m,
-        displayType: DisplayMessageType.Normal,
-      }));
-
-      setChatHistory(displayHistory);
-      setCurrentChatId(chat.chatId);
-      setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
-    });
-  }, []);
-
-  useEffect(() => {
-    if (hasLoadedLastChat.current)
-      return;
-
-    hasLoadedLastChat.current = true;
-    getChats()
-      .then((list) => {
-        if (list.length > 0)
-          loadSelectedChat(list[0].chatId);
-      })
-      .catch(() => {});
-  }, [loadSelectedChat]);
-
-  const startNewChat = useCallback(() => {
-    setChatHistory([]);
-    setCurrentChatId(null);
-    setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
-  }, []);
-
-  useEffect(() => {
-    getMemory()
-      .then((data) => {
-
-        if (data.content !== null)
-          setMemory(data.content);
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleCopyMessage = useCallback(async (content: string) => {
-    await copyToClipboard(content);
-  }, []);
-
-  const buildRequestMessages = useCallback((): ChatMessage[] => {
-    const msgs: ChatMessage[] = [];
-
-    if (memory.trim())
-      msgs.push({ role: "system", content: memory.trim() });
-
-    const normalEntries = chatHistory.filter((m) => m.displayType === DisplayMessageType.Normal);
-    normalEntries.forEach((m) => {
-
-      if (m.role === "user" || m.role === "assistant")
-        msgs.push({ role: m.role, content: m.content });
-    });
-
-    return msgs;
-  }, [memory, chatHistory]);
-
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
-
-    if (!text || loading)
-      return;
-
-    const userMessage: ChatDisplayMessage = { role: "user", content: text, displayType: DisplayMessageType.Normal };
-    setChatHistory((prev) => [...prev, userMessage]);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const requestMessages = buildRequestMessages();
-      requestMessages.push({ role: "user", content: text });
-      const sentInCall = requestMessages.reduce((sum, m) => sum + countWords(m.content), 0);
-      setWordCounts((prev) => ({ ...prev, lastSent: sentInCall, totalSent: prev.totalSent + sentInCall }));
-
-      const response = await postChat(requestMessages, currentChatId, sendOptions.includeResponses, sendOptions.includeMemory);
-
-      setCurrentChatId(response.chatId);
-      const newDisplay: ChatDisplayMessage[] = response.messages
-        .filter((m) => m.role === "assistant")
-        .map((m) => ({ ...m, displayType: DisplayMessageType.Normal }));
-
-      const receivedInCall = newDisplay.reduce((sum, m) => sum + countWords(m.content), 0);
-      setWordCounts((prev) => ({ ...prev, lastReceived: receivedInCall, totalReceived: prev.totalReceived + receivedInCall }));
-      setChatHistory((prev) => [...prev, ...newDisplay]);
-    }
-    catch (e) {
-      setWordCounts((prev) => ({ ...prev, lastReceived: 0 }));
-      const errorContent = e instanceof Error ? e.message : "Request failed";
-      setChatHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: errorContent, displayType: DisplayMessageType.Error },
-      ]);
-    }
-    finally {
-      setLoading(false);
-    }
-  }, [input, loading, buildRequestMessages, currentChatId, sendOptions]);
-
-  const regenerateLastResponse = useCallback(async () => {
-    if (loading || chatHistory.length === 0)
-      return;
-
-    const last = chatHistory[chatHistory.length - 1];
-    if (last.role !== "assistant" || last.displayType !== DisplayMessageType.Normal)
-      return;
-
-    const historyWithoutLast = chatHistory.slice(0, -1);
-    const msgs: ChatMessage[] = [];
-
-    if (memory.trim())
-      msgs.push({ role: "system", content: memory.trim() });
-
-    historyWithoutLast
-      .filter((m) => m.displayType === DisplayMessageType.Normal && (m.role === "user" || m.role === "assistant"))
-      .forEach((m) => msgs.push({ role: m.role, content: m.content }));
-
-    setLoading(true);
-    try {
-      const response = await postChat(msgs, currentChatId, sendOptions.includeResponses, sendOptions.includeMemory);
-      setCurrentChatId(response.chatId);
-      const newDisplay: ChatDisplayMessage[] = response.messages
-        .filter((m) => m.role === "assistant")
-        .map((m) => ({ ...m, displayType: DisplayMessageType.Normal }));
-      setChatHistory((prev) => [...prev.slice(0, -1), ...newDisplay]);
-    }
-    catch (e) {
-      const errorContent = e instanceof Error ? e.message : "Request failed";
-      setChatHistory((prev) => [
-        ...prev.slice(0, -1),
-        { role: "assistant", content: errorContent, displayType: DisplayMessageType.Error },
-      ]);
-    }
-    finally {
-      setLoading(false);
-    }
-  }, [loading, chatHistory, memory, currentChatId, sendOptions]);
+  const {
+    memory,
+    setMemory,
+    chatHistory,
+    currentChatId,
+    sendOptions,
+    setSendOptions,
+    wordCounts,
+    loading,
+    sendMessage,
+    regenerateLastResponse,
+    loadSelectedChat,
+    startNewChat,
+    deleteMessage,
+  } = useChat();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      if (input.trim()) {
+        sendMessage(input);
+        setInput("");
+      }
     }
   };
-
-  const handleConfirmDeleteMessage = useCallback(() => {
-    if (messageIndexToDelete === null)
-      return;
-
-    const newHistory = chatHistory.filter((_, idx) => idx !== messageIndexToDelete);
-    setChatHistory(newHistory);
-    setMessageIndexToDelete(null);
-
-    if (currentChatId !== null) {
-      const msgs: ChatMessage[] = [];
-      if (memory.trim())
-        msgs.push({ role: "system", content: memory.trim() });
-      newHistory
-        .filter((m) => m.displayType === DisplayMessageType.Normal && (m.role === "user" || m.role === "assistant"))
-        .forEach((m) => msgs.push({ role: m.role, content: m.content }));
-      putChat(currentChatId, msgs).catch(() => {});
-    }
-  }, [messageIndexToDelete, chatHistory, currentChatId, memory]);
 
   const { fontSize } = useFontSize();
 
@@ -214,7 +53,6 @@ export const Home = () => {
         loading={loading}
         onRegenerateLastResponse={regenerateLastResponse}
         onDeleteMessage={setMessageIndexToDelete}
-        onCopyMessage={handleCopyMessage}
       />
 
       <Styled.InputArea>
@@ -235,7 +73,17 @@ export const Home = () => {
             onNewChat={startNewChat}
           />
           <MemoryButtonAndModal memory={memory} onMemoryChange={setMemory} />
-          <Button $primary type="button" onClick={sendMessage} disabled={loading || !input.trim()}>
+          <Button
+            $primary
+            type="button"
+            onClick={() => {
+              if (input.trim()) {
+                sendMessage(input);
+                setInput("");
+              }
+            }}
+            disabled={loading || !input.trim()}
+          >
             {loading ? "Sending..." : "Send"}
           </Button>
           <SendOptionsDropdown
@@ -248,7 +96,12 @@ export const Home = () => {
 
       <ConfirmDeleteMessageModal
         open={messageIndexToDelete !== null}
-        onConfirm={handleConfirmDeleteMessage}
+        onConfirm={() => {
+          if (messageIndexToDelete !== null) {
+            deleteMessage(messageIndexToDelete);
+            setMessageIndexToDelete(null);
+          }
+        }}
         onCancel={() => setMessageIndexToDelete(null)}
       />
     </Styled.Layout>

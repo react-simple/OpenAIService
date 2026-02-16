@@ -1,9 +1,9 @@
 import {
-  MEMORY_STORAGE_KEY,
   FONT_SIZE_STORAGE_KEY,
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
   FONT_SIZE_DEFAULT,
+  MEMORY_STORAGE_KEY,
 } from "consts";
 
 export function getStoredMemory(): string {

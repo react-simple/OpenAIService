@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { getMe, logout as logoutApi } from "functions";
-import type { AuthUser } from "functions";
+import { getMe, logout as logoutApi } from "services";
+import type { AuthUser } from "services";
 import { ENDPOINTS } from "consts";
 
 interface AuthContextValue {

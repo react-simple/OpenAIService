@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "icons";
 import * as Styled from "../Home.styles";
-import type { SendOptions } from "../Home.types";
+import type { SendOptions } from "hooks";
 
 interface SendOptionsDropdownProps {
   options: SendOptions;

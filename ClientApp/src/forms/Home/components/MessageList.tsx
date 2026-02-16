@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import type { ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
+import { copyToClipboard } from "utils";
 import * as Styled from "../Home.styles";
 import { CopyButton } from "components";
 import { CopyIcon, RefreshIcon, TrashIcon } from "icons";
@@ -11,7 +12,6 @@ interface MessageListProps {
   loading: boolean;
   onRegenerateLastResponse: () => void;
   onDeleteMessage: (index: number) => void;
-  onCopyMessage: (content: string) => void;
 }
 
 export const MessageList = ({
@@ -20,7 +20,6 @@ export const MessageList = ({
   loading,
   onRegenerateLastResponse,
   onDeleteMessage,
-  onCopyMessage,
 }: MessageListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +52,7 @@ export const MessageList = ({
               <CopyButton type="button" onClick={() => onDeleteMessage(i)} title="Delete message">
                 <TrashIcon />
               </CopyButton>
-              <CopyButton type="button" onClick={() => onCopyMessage(msg.content)} title="Copy">
+              <CopyButton type="button" onClick={() => void copyToClipboard(msg.content)} title="Copy">
                 <CopyIcon />
               </CopyButton>
             </Styled.MessageActions>

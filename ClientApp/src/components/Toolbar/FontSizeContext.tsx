@@ -5,7 +5,7 @@ import {
   FONT_SIZE_MAX,
   FONT_SIZE_DEFAULT,
 } from "consts";
-import { getStoredFontSize } from "forms/Home/Home.utils";
+import { getStoredFontSize } from "functions";
 
 interface FontSizeContextValue {
   fontSize: number;
