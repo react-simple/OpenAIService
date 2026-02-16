@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { postChat, getMemory, putMemory, getChat, getChats, putChat } from "functions";
+import { postChat, getMemory, getChat, getChats, putChat } from "functions";
 import type { ChatMessage, ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
 import { countWords, formatWithSuffix } from "utils";
@@ -12,16 +12,19 @@ import {
   FONT_SIZE_DEFAULT,
 } from "consts";
 import { getStoredMemory, getStoredFontSize } from "./Home.utils";
-import { Button, ChatsModal, CONFIRM_DELETE_MESSAGE, ConfirmationModal, CopyButton, MemoryModal, Toolbar } from "components";
-import { ChevronDownIcon, ChevronUpIcon, CopyIcon, RefreshIcon, TrashIcon } from "icons";
+import { Button, Toolbar } from "components";
+import { ChatsButtonAndModal } from "./ChatsButtonAndModal";
+import { ConfirmDeleteMessageModal } from "./ConfirmDeleteMessageModal";
+import { MemoryButtonAndModal } from "./MemoryButtonAndModal";
+import { MessageList } from "./MessageList";
+import { SendOptionsDropdown } from "./SendOptionsDropdown";
+
 export const Home = () => {
   const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [memory, setMemory] = useState(() => getStoredMemory());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [memoryModalOpen, setMemoryModalOpen] = useState(false);
-  const [chatsModalOpen, setChatsModalOpen] = useState(false);
   const [messageIndexToDelete, setMessageIndexToDelete] = useState<number | null>(null);
   const [lastSentWords, setLastSentWords] = useState(0);
   const [lastReceivedWords, setLastReceivedWords] = useState(0);
@@ -30,30 +33,7 @@ export const Home = () => {
   const [fontSize, setFontSize] = useState(() => getStoredFontSize());
   const [includeResponses, setIncludeResponses] = useState(true);
   const [includeMemory, setIncludeMemory] = useState(true);
-  const [optionsDropdownOpen, setOptionsDropdownOpen] = useState(false);
-  const messageListRef = useRef<HTMLDivElement>(null);
-  const optionsDropdownRef = useRef<HTMLDivElement>(null);
   const hasLoadedLastChat = useRef(false);
-
-  useEffect(() => {
-    messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
-  }, [chatHistory]);
-
-  const closeMemoryModal = useCallback(() => {
-    setMemoryModalOpen(false);
-  }, []);
-
-  const saveMemory = useCallback((content: string) => {
-    putMemory(content)
-      .then(() => {
-        setMemory(content);
-        setMemoryModalOpen(false);
-      })
-      .catch(() => {
-        setMemory(content);
-        setMemoryModalOpen(false);
-      });
-  }, []);
 
   const loadSelectedChat = useCallback((chatId: number) => {
     getChat(chatId).then((chat) => {
@@ -70,7 +50,6 @@ export const Home = () => {
       setLastReceivedWords(0);
       setTotalSentWords(0);
       setTotalReceivedWords(0);
-      setChatsModalOpen(false);
     });
   }, []);
 
@@ -94,7 +73,6 @@ export const Home = () => {
     setLastReceivedWords(0);
     setTotalSentWords(0);
     setTotalReceivedWords(0);
-    setChatsModalOpen(false);
   }, []);
 
   useEffect(() => {
@@ -115,28 +93,6 @@ export const Home = () => {
       // ignore
     }
   }, [fontSize]);
-
-  useEffect(() => {
-    if (!optionsDropdownOpen)
-      return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (optionsDropdownRef.current?.contains(e.target as Node))
-        return;
-
-      setOptionsDropdownOpen(false);
-    };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape")
-        setOptionsDropdownOpen(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [optionsDropdownOpen]);
 
   const decreaseFontSize = useCallback(() => {
     setFontSize((prev) => Math.max(FONT_SIZE_MIN, prev - 1));
@@ -260,6 +216,25 @@ export const Home = () => {
     }
   };
 
+  const handleConfirmDeleteMessage = useCallback(() => {
+    if (messageIndexToDelete === null)
+      return;
+
+    const newHistory = chatHistory.filter((_, idx) => idx !== messageIndexToDelete);
+    setChatHistory(newHistory);
+    setMessageIndexToDelete(null);
+
+    if (currentChatId !== null) {
+      const msgs: ChatMessage[] = [];
+      if (memory.trim())
+        msgs.push({ role: "system", content: memory.trim() });
+      newHistory
+        .filter((m) => m.displayType === DisplayMessageType.Normal && (m.role === "user" || m.role === "assistant"))
+        .forEach((m) => msgs.push({ role: m.role, content: m.content }));
+      putChat(currentChatId, msgs).catch(() => {});
+    }
+  }, [messageIndexToDelete, chatHistory, currentChatId, memory]);
+
   return (
     <Styled.Layout>
       <Toolbar
@@ -268,39 +243,14 @@ export const Home = () => {
         onIncrease={increaseFontSize}
         onReset={resetFontSize}
       />
-      <Styled.MessageList ref={messageListRef} $fontSizePx={fontSize}>
-        {chatHistory.map((msg, i) => {
-          const variant =
-            msg.displayType === DisplayMessageType.Error
-              ? "error"
-              : msg.role === "user"
-                ? "user"
-                : "assistant";
-          const align = msg.role === "user" ? "end" : "start";
-          const isLastAssistant = i === chatHistory.length - 1 && msg.role === "assistant" && msg.displayType === DisplayMessageType.Normal;
-          return (
-            <Styled.MessageBlock key={i} $align={align}>
-              <Styled.MessageBubble $variant={variant}>
-                {msg.content}
-              </Styled.MessageBubble>
-              <Styled.MessageActions>
-                {isLastAssistant && (
-                  <CopyButton type="button" onClick={regenerateLastResponse} title="Regenerate" disabled={loading}>
-                    <RefreshIcon />
-                  </CopyButton>
-                )}
-                <CopyButton type="button" onClick={() => setMessageIndexToDelete(i)} title="Delete message">
-                  <TrashIcon />
-                </CopyButton>
-                <CopyButton type="button" onClick={() => handleCopyMessage(msg.content)} title="Copy">
-                  <CopyIcon />
-                </CopyButton>
-              </Styled.MessageActions>
-            </Styled.MessageBlock>
-          );
-        })}
-        {loading && <Styled.LoadingSpinner />}
-      </Styled.MessageList>
+      <MessageList
+        chatHistory={chatHistory}
+        fontSize={fontSize}
+        loading={loading}
+        onRegenerateLastResponse={regenerateLastResponse}
+        onDeleteMessage={setMessageIndexToDelete}
+        onCopyMessage={handleCopyMessage}
+      />
 
       <Styled.InputArea>
         <Styled.TextArea
@@ -314,85 +264,29 @@ export const Home = () => {
           <Styled.SentReceivedLabel>
             Sent: {formatWithSuffix(lastSentWords)} ({formatWithSuffix(totalSentWords)} total) &nbsp; Received: {formatWithSuffix(lastReceivedWords)} ({formatWithSuffix(totalReceivedWords)} total)
           </Styled.SentReceivedLabel>
-          <Button type="button" onClick={() => setChatsModalOpen(true)}>
-            Chats
-          </Button>
-          <Button type="button" onClick={() => setMemoryModalOpen(true)}>
-            Memory ({formatWithSuffix(countWords(memory))})
-          </Button>
+          <ChatsButtonAndModal
+            currentChatId={currentChatId}
+            onSelectChat={loadSelectedChat}
+            onNewChat={startNewChat}
+          />
+          <MemoryButtonAndModal memory={memory} onMemoryChange={setMemory} />
           <Button $primary type="button" onClick={sendMessage} disabled={loading || !input.trim()}>
             {loading ? "Sending..." : "Send"}
           </Button>
-          <Styled.OptionsWrap ref={optionsDropdownRef}>
-            <Styled.OptionsTrigger
-              type="button"
-              onClick={() => setOptionsDropdownOpen((open) => !open)}
-              disabled={loading}
-              title="Send options"
-              aria-expanded={optionsDropdownOpen}
-              aria-haspopup="true"
-            >
-              {optionsDropdownOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Styled.OptionsTrigger>
-            {optionsDropdownOpen && (
-              <Styled.OptionsPopup>
-                <Styled.CheckboxLabel>
-                  <input
-                    type="checkbox"
-                    checked={includeResponses}
-                    onChange={(e) => setIncludeResponses(e.target.checked)}
-                  />
-                  Include responses
-                </Styled.CheckboxLabel>
-                <Styled.CheckboxLabel>
-                  <input
-                    type="checkbox"
-                    checked={includeMemory}
-                    onChange={(e) => setIncludeMemory(e.target.checked)}
-                  />
-                  Include memory
-                </Styled.CheckboxLabel>
-              </Styled.OptionsPopup>
-            )}
-          </Styled.OptionsWrap>
+          <SendOptionsDropdown
+            includeResponses={includeResponses}
+            includeMemory={includeMemory}
+            onIncludeResponsesChange={setIncludeResponses}
+            onIncludeMemoryChange={setIncludeMemory}
+            disabled={loading}
+          />
         </Styled.SendRow>
       </Styled.InputArea>
 
-      <ChatsModal
-        open={chatsModalOpen}
-        onClose={() => setChatsModalOpen(false)}
-        onSelectChat={loadSelectedChat}
-        onNewChat={startNewChat}
-        currentChatId={currentChatId}
-      />
-      <ConfirmationModal
+      <ConfirmDeleteMessageModal
         open={messageIndexToDelete !== null}
-        message={CONFIRM_DELETE_MESSAGE}
-        onConfirm={() => {
-          if (messageIndexToDelete === null)
-            return;
-
-          const newHistory = chatHistory.filter((_, idx) => idx !== messageIndexToDelete);
-          setChatHistory(newHistory);
-          setMessageIndexToDelete(null);
-
-          if (currentChatId !== null) {
-            const msgs: ChatMessage[] = [];
-            if (memory.trim())
-              msgs.push({ role: "system", content: memory.trim() });
-            newHistory
-              .filter((m) => m.displayType === DisplayMessageType.Normal && (m.role === "user" || m.role === "assistant"))
-              .forEach((m) => msgs.push({ role: m.role, content: m.content }));
-            putChat(currentChatId, msgs).catch(() => {});
-          }
-        }}
+        onConfirm={handleConfirmDeleteMessage}
         onCancel={() => setMessageIndexToDelete(null)}
-      />
-      <MemoryModal
-        open={memoryModalOpen}
-        onClose={closeMemoryModal}
-        initialValue={memory}
-        onSave={saveMemory}
       />
     </Styled.Layout>
   );

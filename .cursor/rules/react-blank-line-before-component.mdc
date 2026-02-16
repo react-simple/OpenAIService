@@ -1,0 +1,22 @@
+---
+description: Blank line before React component definition (export const X = () => {)
+globs: **/*.tsx
+alwaysApply: false
+---
+
+# Blank line before component definition
+
+In React (TSX), add a **blank line before** each component definition.
+
+**Pattern:** `export const ComponentName = () => {` or `export const ComponentName = (props) => {`
+
+**Example:**
+```tsx
+import { Something } from "./Something";
+
+export const Home = () => {
+  // ...
+};
+```
+
+Do not place the component definition immediately after the last import without a blank line.
