@@ -1,8 +1,13 @@
 import { ENDPOINTS } from "consts";
 import type { ChatMessage, ChatRequest, ChatResponse } from "types";
 
-export async function postChat(messages: ChatMessage[], chatId?: number | null): Promise<ChatResponse> {
-  const body: ChatRequest = { messages };
+export async function postChat(
+  messages: ChatMessage[],
+  chatId?: number | null,
+  includeResponses = true,
+  includeMemory = true,
+): Promise<ChatResponse> {
+  const body: ChatRequest = { messages, includeResponses, includeMemory };
 
   if (chatId != null)
     body.chatId = chatId;

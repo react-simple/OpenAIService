@@ -13,7 +13,7 @@ import {
 } from "consts";
 import { getStoredMemory, getStoredFontSize } from "./Home.utils";
 import { Button, ChatsModal, CONFIRM_DELETE_MESSAGE, ConfirmationModal, CopyButton, MemoryModal, Toolbar } from "components";
-import { CopyIcon, RefreshIcon, TrashIcon } from "icons";
+import { ChevronDownIcon, ChevronUpIcon, CopyIcon, RefreshIcon, TrashIcon } from "icons";
 export const Home = () => {
   const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
@@ -28,7 +28,11 @@ export const Home = () => {
   const [totalSentWords, setTotalSentWords] = useState(0);
   const [totalReceivedWords, setTotalReceivedWords] = useState(0);
   const [fontSize, setFontSize] = useState(() => getStoredFontSize());
+  const [includeResponses, setIncludeResponses] = useState(true);
+  const [includeMemory, setIncludeMemory] = useState(true);
+  const [optionsDropdownOpen, setOptionsDropdownOpen] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
+  const optionsDropdownRef = useRef<HTMLDivElement>(null);
   const hasLoadedLastChat = useRef(false);
 
   useEffect(() => {
@@ -112,6 +116,28 @@ export const Home = () => {
     }
   }, [fontSize]);
 
+  useEffect(() => {
+    if (!optionsDropdownOpen)
+      return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (optionsDropdownRef.current?.contains(e.target as Node))
+        return;
+
+      setOptionsDropdownOpen(false);
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape")
+        setOptionsDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [optionsDropdownOpen]);
+
   const decreaseFontSize = useCallback(() => {
     setFontSize((prev) => Math.max(FONT_SIZE_MIN, prev - 1));
   }, []);
@@ -162,7 +188,7 @@ export const Home = () => {
       setLastSentWords(sentInCall);
       setTotalSentWords((prev) => prev + sentInCall);
 
-      const response = await postChat(requestMessages, currentChatId);
+      const response = await postChat(requestMessages, currentChatId, includeResponses, includeMemory);
 
       setCurrentChatId(response.chatId);
       const newDisplay: ChatDisplayMessage[] = response.messages
@@ -185,7 +211,7 @@ export const Home = () => {
     finally {
       setLoading(false);
     }
-  }, [input, loading, buildRequestMessages, currentChatId]);
+  }, [input, loading, buildRequestMessages, currentChatId, includeResponses, includeMemory]);
 
   const regenerateLastResponse = useCallback(async () => {
     if (loading || chatHistory.length === 0)
@@ -207,7 +233,7 @@ export const Home = () => {
 
     setLoading(true);
     try {
-      const response = await postChat(msgs, currentChatId);
+      const response = await postChat(msgs, currentChatId, includeResponses, includeMemory);
       setCurrentChatId(response.chatId);
       const newDisplay: ChatDisplayMessage[] = response.messages
         .filter((m) => m.role === "assistant")
@@ -224,7 +250,7 @@ export const Home = () => {
     finally {
       setLoading(false);
     }
-  }, [loading, chatHistory, memory, currentChatId]);
+  }, [loading, chatHistory, memory, currentChatId, includeResponses, includeMemory]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
 
@@ -297,6 +323,38 @@ export const Home = () => {
           <Button $primary type="button" onClick={sendMessage} disabled={loading || !input.trim()}>
             {loading ? "Sending..." : "Send"}
           </Button>
+          <Styled.OptionsWrap ref={optionsDropdownRef}>
+            <Styled.OptionsTrigger
+              type="button"
+              onClick={() => setOptionsDropdownOpen((open) => !open)}
+              disabled={loading}
+              title="Send options"
+              aria-expanded={optionsDropdownOpen}
+              aria-haspopup="true"
+            >
+              {optionsDropdownOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            </Styled.OptionsTrigger>
+            {optionsDropdownOpen && (
+              <Styled.OptionsPopup>
+                <Styled.CheckboxLabel>
+                  <input
+                    type="checkbox"
+                    checked={includeResponses}
+                    onChange={(e) => setIncludeResponses(e.target.checked)}
+                  />
+                  Include responses
+                </Styled.CheckboxLabel>
+                <Styled.CheckboxLabel>
+                  <input
+                    type="checkbox"
+                    checked={includeMemory}
+                    onChange={(e) => setIncludeMemory(e.target.checked)}
+                  />
+                  Include memory
+                </Styled.CheckboxLabel>
+              </Styled.OptionsPopup>
+            )}
+          </Styled.OptionsWrap>
         </Styled.SendRow>
       </Styled.InputArea>
 

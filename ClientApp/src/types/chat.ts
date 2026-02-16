@@ -17,6 +17,10 @@ export interface ChatDisplayMessage extends ChatMessage {
 export interface ChatRequest {
   messages: ChatMessage[];
   chatId?: number | null;
+  /** When true (default), assistant messages are sent to OpenAI; when false, only user and system messages are sent. */
+  includeResponses?: boolean;
+  /** When true (default), system (memory) message is sent to OpenAI; when false, it is omitted. */
+  includeMemory?: boolean;
 }
 
 export interface ChatResponse {

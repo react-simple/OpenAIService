@@ -120,3 +120,77 @@ export const SentReceivedLabel = styled.span`
   color: #6b7280;
   margin-right: auto;
 `;
+
+export const OptionsWrap = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+export const OptionsTrigger = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+
+  &:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+  &:focus {
+    outline: none;
+    border-color: #0a7cff;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+export const OptionsPopup = styled.div`
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+  padding: 0.5rem 0.25rem;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+export const CheckboxLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+
+  input {
+    flex-shrink: 0;
+  }
+`;

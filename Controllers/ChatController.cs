@@ -50,7 +50,12 @@ namespace OpenAIServiceGpt4o.Controllers
       var chatClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(key)).GetChatClient(model);
       var chat = await _chatService.GetChatAsync(email, request.ChatId, cancellationToken);
 
-      var messages = ToChatMessages(request.Messages);
+      var messagesToSend = request.Messages.AsEnumerable();
+      if (!request.IncludeResponses)
+        messagesToSend = messagesToSend.Where(m => m.Role != ChatRole.Assistant);
+      if (!request.IncludeMemory)
+        messagesToSend = messagesToSend.Where(m => m.Role != ChatRole.System);
+      var messages = ToChatMessages(messagesToSend.ToList());
 
       try
       {
