@@ -9,7 +9,8 @@ import {
   SendOptionsDropdown,
 } from "./components";
 import { useChat } from "hooks";
-import { Button, Toolbar, useFontSize } from "components";
+import { Button, Toolbar } from "components";
+import { useFontSize } from "hooks";
 
 export const Home = () => {
   const [input, setInput] = useState("");

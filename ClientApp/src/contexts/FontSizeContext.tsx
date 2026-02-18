@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useEffect, useState } from "react";
 import {
   FONT_SIZE_STORAGE_KEY,
   FONT_SIZE_MIN,
@@ -7,14 +7,14 @@ import {
 } from "consts";
 import { getStoredFontSize } from "functions";
 
-interface FontSizeContextValue {
+export interface FontSizeContextValue {
   fontSize: number;
   decreaseFontSize: () => void;
   increaseFontSize: () => void;
   resetFontSize: () => void;
 }
 
-const FontSizeContext = createContext<FontSizeContextValue | null>(null);
+export const FontSizeContext = createContext<FontSizeContextValue | null>(null);
 
 export function FontSizeProvider({ children }: { children: React.ReactNode }) {
   const [fontSize, setFontSize] = useState(() => getStoredFontSize());
@@ -52,13 +52,4 @@ export function FontSizeProvider({ children }: { children: React.ReactNode }) {
       {children}
     </FontSizeContext.Provider>
   );
-}
-
-export function useFontSize(): FontSizeContextValue {
-  const ctx = useContext(FontSizeContext);
-
-  if (ctx === null)
-    throw new Error("useFontSize must be used within FontSizeProvider");
-
-  return ctx;
 }

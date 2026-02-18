@@ -1,5 +1,6 @@
 import React from 'react';
-import { AppRoutes, AuthGate, FontSizeProvider } from 'components';
+import { AppRoutes, AuthGate } from "components";
+import { FontSizeProvider } from "contexts/FontSizeContext";
 import * as Styled from "App.styles";
 import { AuthProvider } from "contexts/AuthContext";
 

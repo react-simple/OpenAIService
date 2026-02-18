@@ -4,7 +4,7 @@ import { LogoutIcon } from "icons";
 import { useAuth } from "contexts/AuthContext";
 import * as ToolbarStyled from "./Toolbar.styles";
 import { FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_DEFAULT } from "consts";
-import { useFontSize } from "./FontSizeContext";
+import { useFontSize } from "hooks";
 
 export const Toolbar = () => {
   const { user, logout } = useAuth();
