@@ -1,5 +1,25 @@
 import { ENDPOINTS } from "consts";
-import type { ChatMessage, ChatRequest, ChatResponse } from "types";
+
+export type ChatRole = "user" | "system" | "assistant";
+
+export interface ChatMessage {
+  role: ChatRole;
+  content: string;
+}
+
+export interface ChatRequest {
+  messages: ChatMessage[];
+  chatId?: number | null;
+  /** When true (default), assistant messages are sent to OpenAI; when false, only user and system messages are sent. */
+  includeResponses?: boolean;
+  /** When true (default), system (memory) message is sent to OpenAI; when false, it is omitted. */
+  includeMemory?: boolean;
+}
+
+export interface ChatResponse {
+  chatId: number;
+  messages: ChatMessage[];
+}
 
 export async function postChat(
   messages: ChatMessage[],

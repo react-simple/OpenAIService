@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenAIServiceGpt4o.Helpers;
 using OpenAIServiceGpt4o.Models;
 using OpenAIServiceGpt4o.Services;
-using OpenAIServiceGpt4o;
 
 namespace OpenAIServiceGpt4o.Controllers
 {

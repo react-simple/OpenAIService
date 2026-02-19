@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Caching.Memory;
 using OpenAIServiceGpt4o.Authorization;
+using OpenAIServiceGpt4o.Helpers;
 using OpenAIServiceGpt4o.Services;
 using OpenAI.Chat;
+using System.ClientModel;
 
 var builder = WebApplication.CreateBuilder(args);
 

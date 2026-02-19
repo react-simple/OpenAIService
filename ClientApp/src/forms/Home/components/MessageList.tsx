@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import type { ChatDisplayMessage } from "types";
-import { DisplayMessageType } from "types";
+import type { ChatDisplayMessage } from "hooks";
+import { DisplayMessageType } from "hooks";
 import { copyToClipboard } from "utils";
 import * as Styled from "../Home.styles";
 import { IconButton } from "components";

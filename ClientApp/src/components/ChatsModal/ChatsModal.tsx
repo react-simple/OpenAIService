@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { formatChatUpdate } from "utils/formatting";
 import { Button, CONFIRM_DELETE_MESSAGE, ConfirmationModal, Modal } from "components";
 import { useChats } from "hooks";
+import type { ChatListItem } from "services/chatsApi";
 import { TrashIcon } from "icons";
 import * as Styled from "./ChatsModal.styles";
 
@@ -14,8 +15,20 @@ interface ChatsModalProps {
 }
 
 export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChatId = null }: ChatsModalProps) => {
-  const { chats, loading, error, loadChats, deleteChat: deleteChatById } = useChats();
+  const chatsApi = useChats();
+  const [chats, setChats] = useState<ChatListItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pendingDeleteChatId, setPendingDeleteChatId] = useState<number | null>(null);
+
+  const loadChats = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    chatsApi.getChats()
+      .then(setChats)
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load chats"))
+      .finally(() => setLoading(false));
+  }, [chatsApi.getChats]);
 
   useEffect(() => {
     if (!open)
@@ -47,10 +60,11 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
 
     const chatId = pendingDeleteChatId;
     setPendingDeleteChatId(null);
-    deleteChatById(chatId).then(() => {
+    chatsApi.deleteChat(chatId).then(() => {
+      setChats((prev) => prev.filter((c) => c.chatId !== chatId));
       if (currentChatId === chatId)
         onNewChat?.();
-    });
+    }).catch((e) => setError(e instanceof Error ? e.message : "Failed to delete chat"));
   };
 
   return (

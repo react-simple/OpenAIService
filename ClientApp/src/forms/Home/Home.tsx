@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { formatWithSuffix } from "utils";
 import * as Styled from "./Home.styles";
 import {
@@ -8,36 +8,60 @@ import {
   MessageList,
   SendOptionsDropdown,
 } from "./components";
-import { useChat } from "hooks";
+import { useChats, useChat } from "hooks";
+import { getMemory } from "services";
+import { getStoredMemory } from "functions";
+import type { SendOptions } from "hooks";
 import { Button, Toolbar } from "components";
 import { useFontSize } from "hooks";
 
 export const Home = () => {
   const [input, setInput] = useState("");
   const [messageIndexToDelete, setMessageIndexToDelete] = useState<number | null>(null);
+  const [memory, setMemory] = useState(() => getStoredMemory());
+  const [sendOptions, setSendOptions] = useState<SendOptions>({ includeResponses: true, includeMemory: true });
 
-  const {
+  const chats = useChats();
+  const chat = useChat({
+    chats,
     memory,
-    setMemory,
-    chatHistory,
-    currentChatId,
     sendOptions,
-    setSendOptions,
-    wordCounts,
-    loading,
-    sendMessage,
-    regenerateLastResponse,
-    loadSelectedChat,
-    startNewChat,
-    deleteMessage,
-  } = useChat();
+  });
+
+  const hasLoadedLastChat = useRef(false);
+
+  useEffect(() => {
+    getMemory()
+      .then((data) => {
+
+        if (data.content !== null)
+          setMemory(data.content);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (hasLoadedLastChat.current)
+      return;
+
+    hasLoadedLastChat.current = true;
+    chats.getChats()
+      .then((list) => {
+
+        if (list.length > 0)
+          chat.loadChat(list[0].chatId);
+      })
+      .catch(() => {});
+    // Intentionally run once on mount to load most recent chat.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (input.trim()) {
-        sendMessage(input);
+        chat.sendMessage(input);
         setInput("");
       }
     }
@@ -49,10 +73,10 @@ export const Home = () => {
     <Styled.Layout>
       <Toolbar />
       <MessageList
-        chatHistory={chatHistory}
+        chatHistory={chat.chatHistory}
         fontSize={fontSize}
-        loading={loading}
-        onRegenerateLastResponse={regenerateLastResponse}
+        loading={chat.loading}
+        onRegenerateLastResponse={chat.regenerateLastResponse}
         onDeleteMessage={setMessageIndexToDelete}
       />
 
@@ -62,16 +86,16 @@ export const Home = () => {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          disabled={loading}
+          disabled={chat.loading}
         />
         <Styled.SendRow>
           <Styled.SentReceivedLabel>
-            Sent: {formatWithSuffix(wordCounts.lastSent)} ({formatWithSuffix(wordCounts.totalSent)} total) &nbsp; Received: {formatWithSuffix(wordCounts.lastReceived)} ({formatWithSuffix(wordCounts.totalReceived)} total)
+            Sent: {formatWithSuffix(chat.wordCounts.lastSent)} ({formatWithSuffix(chat.wordCounts.totalSent)} total) &nbsp; Received: {formatWithSuffix(chat.wordCounts.lastReceived)} ({formatWithSuffix(chat.wordCounts.totalReceived)} total)
           </Styled.SentReceivedLabel>
           <ChatsButtonAndModal
-            currentChatId={currentChatId}
-            onSelectChat={loadSelectedChat}
-            onNewChat={startNewChat}
+            currentChatId={chats.currentChatId}
+            onSelectChat={chat.loadChat}
+            onNewChat={chat.startNewChat}
           />
           <MemoryButtonAndModal memory={memory} onMemoryChange={setMemory} />
           <Button
@@ -79,18 +103,18 @@ export const Home = () => {
             type="button"
             onClick={() => {
               if (input.trim()) {
-                sendMessage(input);
+                chat.sendMessage(input);
                 setInput("");
               }
             }}
-            disabled={loading || !input.trim()}
+            disabled={chat.loading || !input.trim()}
           >
-            {loading ? "Sending..." : "Send"}
+            {chat.loading ? "Sending..." : "Send"}
           </Button>
           <SendOptionsDropdown
             options={sendOptions}
             onOptionsChange={(next) => setSendOptions((prev) => ({ ...prev, ...next }))}
-            disabled={loading}
+            disabled={chat.loading}
           />
         </Styled.SendRow>
       </Styled.InputArea>
@@ -99,7 +123,7 @@ export const Home = () => {
         open={messageIndexToDelete !== null}
         onConfirm={() => {
           if (messageIndexToDelete !== null) {
-            deleteMessage(messageIndexToDelete);
+            chat.deleteMessage(messageIndexToDelete);
             setMessageIndexToDelete(null);
           }
         }}

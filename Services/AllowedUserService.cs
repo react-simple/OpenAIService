@@ -3,6 +3,11 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace OpenAIServiceGpt4o.Services
 {
+  public interface IAllowedUserService
+  {
+    Task<bool> IsAllowedAsync(string email, bool allowCached = true, CancellationToken cancellationToken = default);
+  }
+
   public class AllowedUserService : IAllowedUserService
   {
     private const string CacheKeyPrefix = "AllowedUser:";

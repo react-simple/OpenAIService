@@ -1,8 +1,9 @@
 using System.Security.Claims;
+using OpenAIServiceGpt4o;
 
-namespace OpenAIServiceGpt4o
+namespace OpenAIServiceGpt4o.Helpers
 {
-  public static class ClaimsPrincipalExtensions
+  public static class ClaimsPrincipalHelper
   {
     /// <summary>Gets the user's email from claims (supports both ClaimTypes.Email and Google's claim type).</summary>
     public static string? GetEmail(this ClaimsPrincipal? principal)

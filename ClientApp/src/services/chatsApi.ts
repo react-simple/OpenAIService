@@ -1,6 +1,18 @@
 import { ENDPOINTS } from "consts";
-import type { ChatDto, ChatListItem } from "types";
-import type { ChatMessage } from "types";
+import type { ChatMessage } from "./chatApi";
+
+export interface ChatListItem {
+  chatId: number;
+  title: string;
+  chatUpdate: string | Date;
+}
+
+export interface Chat {
+  chatId: number;
+  title: string;
+  chatUpdate: string | Date;
+  content: ChatMessage[] | null;
+}
 
 export async function getChats(): Promise<ChatListItem[]> {
   const res = await fetch(ENDPOINTS.chats.list, {
@@ -19,7 +31,7 @@ export async function getChats(): Promise<ChatListItem[]> {
   return res.json() as Promise<ChatListItem[]>;
 }
 
-export async function getChat(chatId: number): Promise<ChatDto> {
+export async function getChat(chatId: number): Promise<Chat> {
   const res = await fetch(ENDPOINTS.chats.get(chatId), {
     method: "GET",
     credentials: "include",
@@ -36,7 +48,7 @@ export async function getChat(chatId: number): Promise<ChatDto> {
     throw new Error(text || `HTTP ${res.status}`);
   }
 
-  return res.json() as Promise<ChatDto>;
+  return res.json() as Promise<Chat>;
 }
 
 export async function deleteChat(chatId: number): Promise<void> {

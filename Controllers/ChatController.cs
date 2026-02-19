@@ -1,9 +1,9 @@
 using Azure.AI.OpenAI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenAIServiceGpt4o.Helpers;
 using OpenAIServiceGpt4o.Models;
 using OpenAIServiceGpt4o.Services;
-using OpenAIServiceGpt4o;
 using OpenAI.Chat;
 using System.ClientModel;
 
@@ -111,17 +111,35 @@ namespace OpenAIServiceGpt4o.Controllers
       CancellationToken cancellationToken)
     {
       var defaultTitle = "Chat #" + chat.ChatId;
+      var hasFinalTitle = chat.Title != defaultTitle && !chat.Title.EndsWith('*');
 
-      if (chat.Title != defaultTitle)
+      if (hasFinalTitle)
         return;
 
       var userMessages = fullMessages.Where(m => m.Role == ChatRole.User).ToList();
       var userOnlyLength = userMessages.Sum(m => (m.Content ?? "").Length);
       var userMessageCount = userMessages.Count;
+      var conditionMet = userOnlyLength >= Constants.MinUserCharsForTitle || userMessageCount >= Constants.MinUserMessagesForTitle;
 
-      if (userOnlyLength < Constants.MinUserCharsForTitle && userMessageCount < Constants.MinUserMessagesForTitle)
+      if (conditionMet)
+      {
+        // Chat is long enough: generate and save final title (no asterisk).
+        await GenerateAndSaveTitleAsync(chatClient, chat, fullMessages, cancellationToken, temp: false);
         return;
+      }
 
+      // First exchange with default title: generate and save temp title (ends with *).
+      if (chat.Title == defaultTitle)
+        await GenerateAndSaveTitleAsync(chatClient, chat, fullMessages, cancellationToken, temp: true);
+    }
+
+    private async Task GenerateAndSaveTitleAsync(
+      ChatClient chatClient,
+      Chat chat,
+      IReadOnlyList<ChatMessageDto> fullMessages,
+      CancellationToken cancellationToken,
+      bool temp)
+    {
       var conversationText = FormatConversationForTitle(fullMessages);
 
       var titleMessages = new List<ChatMessage>
@@ -141,12 +159,15 @@ namespace OpenAIServiceGpt4o.Controllers
         if (title.Length > Constants.MaxChatTitleLength)
           title = title[..Constants.MaxChatTitleLength];
 
+        if (temp)
+          title = title.TrimEnd('*').TrimEnd() + "*";
+
         chat.Title = title;
         await _chatService.SaveChatAsync(chat, cancellationToken);
       }
       catch
       {
-        // Keep default title on failure
+        // Keep current title on failure
       }
     }
 
