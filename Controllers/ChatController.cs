@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenAIServiceGpt4o.Models;
 using OpenAIServiceGpt4o.Services;
+using OpenAIServiceGpt4o;
 using OpenAI.Chat;
 using System.ClientModel;
 

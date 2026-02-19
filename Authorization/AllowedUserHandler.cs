@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using OpenAIServiceGpt4o.Services;
+using OpenAIServiceGpt4o;
 
 namespace OpenAIServiceGpt4o.Authorization
 {
