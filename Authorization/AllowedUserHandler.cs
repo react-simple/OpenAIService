@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using OpenAIServiceGpt4o.Services;
@@ -20,10 +19,7 @@ namespace OpenAIServiceGpt4o.Authorization
       AuthorizationHandlerContext context,
       AllowedUserRequirement requirement)
     {
-      var email = context.User.Claims
-        .FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? context.User.Claims
-          .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = context.User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
       {

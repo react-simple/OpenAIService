@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using Azure.AI.OpenAI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenAIServiceGpt4o.Models;
@@ -14,12 +12,12 @@ namespace OpenAIServiceGpt4o.Controllers
   [Authorize]
   public class ChatController : ControllerBase
   {
-    private readonly IConfiguration _config;
+    private readonly ChatClient _chatClient;
     private readonly IUserChatService _chatService;
 
-    public ChatController(IConfiguration config, IUserChatService chatService)
+    public ChatController(ChatClient chatClient, IUserChatService chatService)
     {
-      _config = config;
+      _chatClient = chatClient;
       _chatService = chatService;
     }
 
@@ -34,20 +32,11 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpPost("chat")]
     public async Task<ActionResult<ChatResponse>> PostChat([FromBody] ChatRequest request, CancellationToken cancellationToken)
     {
-      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();
 
-      var endpoint = _config["OpenAI:Endpoint"] ?? "";
-      var key = _config["OpenAI:Key"] ?? "";
-      var model = _config["OpenAI:ModelName"] ?? "";
-
-      if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(model))
-        return StatusCode(500, "Azure OpenAI is not configured (OpenAI:Endpoint, OpenAI:Key, OpenAI:ModelName).");
-
-      var chatClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(key)).GetChatClient(model);
       var chat = await _chatService.GetChatAsync(email, request.ChatId, cancellationToken);
 
       var messagesToSend = request.Messages.AsEnumerable();
@@ -59,14 +48,14 @@ namespace OpenAIServiceGpt4o.Controllers
 
       try
       {
-        var completion = await chatClient.CompleteChatAsync(messages, RequestOptions);
+        var completion = await _chatClient.CompleteChatAsync(messages, RequestOptions);
         var response = FromCompletion(completion.Value);
 
         var fullMessages = request.Messages.Concat(response.Messages).Where(m => m.Role != ChatRole.System).ToList();
         chat.Content = fullMessages.Count > 0 ? fullMessages.ToArray() : null;
         await _chatService.SaveChatAsync(chat, cancellationToken);
 
-        await TryGenerateAndSaveTitleAsync(chatClient, chat, fullMessages, cancellationToken);
+        await TryGenerateAndSaveTitleAsync(chat, fullMessages, cancellationToken);
 
         response.ChatId = chat.ChatId;
         return Ok(response);
@@ -113,7 +102,6 @@ namespace OpenAIServiceGpt4o.Controllers
     }
 
     private async Task TryGenerateAndSaveTitleAsync(
-      ChatClient chatClient,
       Chat chat,
       IReadOnlyList<ChatMessageDto> fullMessages,
       CancellationToken cancellationToken)
@@ -140,7 +128,7 @@ namespace OpenAIServiceGpt4o.Controllers
 
       try
       {
-        var completion = await chatClient.CompleteChatAsync(titleMessages, RequestOptions);
+        var completion = await _chatClient.CompleteChatAsync(titleMessages, RequestOptions);
         var title = string.Join(" ", completion.Value.Content.Select(c => c.Text ?? "")).Trim();
 
         if (string.IsNullOrEmpty(title))

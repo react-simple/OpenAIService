@@ -1,7 +1,12 @@
+using System.Security.Claims;
+
 namespace OpenAIServiceGpt4o
 {
   public static class Constants
   {
+    /// <summary>Alternative email claim type emitted by some identity providers (e.g. Google via cookie auth).</summary>
+    public const string AlternativeEmailClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress";
+
     /// <summary>Duration to cache allowed-user lookups (reduces SQL roundtrips).</summary>
     public const int AllowedUserCacheDurationMinutes = 5;
 
@@ -19,5 +24,13 @@ namespace OpenAIServiceGpt4o
 
     /// <summary>Maximum length of a generated chat title (characters).</summary>
     public const int MaxChatTitleLength = 100;
+  }
+
+  public static class ClaimsPrincipalExtensions
+  {
+    /// <summary>Returns the user's email from either the standard or alternative claim type.</summary>
+    public static string? GetEmail(this ClaimsPrincipal principal) =>
+      principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
+      ?? principal.Claims.FirstOrDefault(c => c.Type == Constants.AlternativeEmailClaimType)?.Value;
   }
 }

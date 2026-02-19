@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenAIServiceGpt4o.Models;
@@ -21,8 +20,7 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
     {
-      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();
@@ -34,8 +32,7 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
     {
-      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();
@@ -51,8 +48,7 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();
@@ -68,8 +64,7 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Put(int id, [FromBody] ChatRequest request, CancellationToken cancellationToken)
     {
-      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();

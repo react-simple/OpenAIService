@@ -17,10 +17,7 @@ export const MemoryButtonAndModal = ({ memory, onMemoryChange }: MemoryButtonAnd
         onMemoryChange(content);
         setOpen(false);
       })
-      .catch(() => {
-        onMemoryChange(content);
-        setOpen(false);
-      });
+      .catch(() => {});
   };
 
   return (

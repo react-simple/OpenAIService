@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
-export const CopyButton = styled.button`
+export const IconButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;

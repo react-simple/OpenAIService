@@ -1,19 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { getChat, getChats, getMemory, postChat, putChat } from "services";
+import { useCallback, useState } from "react";
+import { postChat, putChat } from "services";
 import type { ChatMessage, ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
 import { countWords } from "utils";
 import type { SendOptions, WordCounts } from "./useChat.types";
-import { getStoredMemory } from "functions";
+import { useMemory } from "../useMemory";
+import { useChatSession } from "../useChatSession";
 
 export type { SendOptions, WordCounts } from "./useChat.types";
-
-const initialWordCounts: WordCounts = {
-  lastSent: 0,
-  lastReceived: 0,
-  totalSent: 0,
-  totalReceived: 0,
-};
 
 export interface UseChatReturn {
   memory: string;
@@ -32,24 +26,16 @@ export interface UseChatReturn {
 }
 
 export function useChat(): UseChatReturn {
+  const { memory, setMemory } = useMemory();
+  const {
+    chatHistory, setChatHistory,
+    currentChatId, setCurrentChatId,
+    wordCounts, setWordCounts,
+    loadSelectedChat, startNewChat,
+  } = useChatSession();
 
-  const [memory, setMemory] = useState(() => getStoredMemory());
-  const [chatHistory, setChatHistory] = useState<ChatDisplayMessage[]>([]);
-  const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [sendOptions, setSendOptions] = useState<SendOptions>({ includeResponses: true, includeMemory: true });
-  const [wordCounts, setWordCounts] = useState<WordCounts>(initialWordCounts);
   const [loading, setLoading] = useState(false);
-  const hasLoadedLastChat = useRef(false);
-
-  useEffect(() => {
-    getMemory()
-      .then((data) => {
-
-        if (data.content !== null)
-          setMemory(data.content);
-      })
-      .catch(() => {});
-  }, []);
 
   const buildRequestMessages = useCallback((): ChatMessage[] => {
     const msgs: ChatMessage[] = [];
@@ -57,12 +43,9 @@ export function useChat(): UseChatReturn {
     if (memory.trim())
       msgs.push({ role: "system", content: memory.trim() });
 
-    const normalEntries = chatHistory.filter((m) => m.displayType === DisplayMessageType.Normal);
-    normalEntries.forEach((m) => {
-
-      if (m.role === "user" || m.role === "assistant")
-        msgs.push({ role: m.role, content: m.content });
-    });
+    chatHistory
+      .filter((m) => m.displayType === DisplayMessageType.Normal && (m.role === "user" || m.role === "assistant"))
+      .forEach((m) => msgs.push({ role: m.role, content: m.content }));
 
     return msgs;
   }, [memory, chatHistory]);
@@ -105,7 +88,7 @@ export function useChat(): UseChatReturn {
     finally {
       setLoading(false);
     }
-  }, [loading, buildRequestMessages, currentChatId, sendOptions, setChatHistory, setCurrentChatId, setWordCounts]);
+  }, [loading, buildRequestMessages, currentChatId, sendOptions]);
 
   const regenerateLastResponse = useCallback(async () => {
     if (loading || chatHistory.length === 0)
@@ -144,27 +127,7 @@ export function useChat(): UseChatReturn {
     finally {
       setLoading(false);
     }
-  }, [loading, chatHistory, memory, currentChatId, sendOptions, setChatHistory, setCurrentChatId, setWordCounts]);
-
-  const loadSelectedChat = useCallback((chatId: number) => {
-    getChat(chatId).then((chat) => {
-      const content = chat.content ?? [];
-      const displayHistory: ChatDisplayMessage[] = content.map((m) => ({
-        ...m,
-        displayType: DisplayMessageType.Normal,
-      }));
-
-      setChatHistory(displayHistory);
-      setCurrentChatId(chat.chatId);
-      setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
-    });
-  }, [setChatHistory, setCurrentChatId, setWordCounts]);
-
-  const startNewChat = useCallback(() => {
-    setChatHistory([]);
-    setCurrentChatId(null);
-    setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
-  }, [setChatHistory, setCurrentChatId, setWordCounts]);
+  }, [loading, chatHistory, memory, currentChatId, sendOptions]);
 
   const deleteMessage = useCallback((index: number) => {
     const newHistory = chatHistory.filter((_, idx) => idx !== index);
@@ -180,20 +143,7 @@ export function useChat(): UseChatReturn {
         .forEach((m) => msgs.push({ role: m.role, content: m.content }));
       putChat(currentChatId, msgs).catch(() => {});
     }
-  }, [chatHistory, currentChatId, memory, setChatHistory]);
-
-  useEffect(() => {
-    if (hasLoadedLastChat.current)
-      return;
-
-    hasLoadedLastChat.current = true;
-    getChats()
-      .then((list) => {
-        if (list.length > 0)
-          loadSelectedChat(list[0].chatId);
-      })
-      .catch(() => {});
-  }, [loadSelectedChat]);
+  }, [chatHistory, currentChatId, memory]);
 
   return {
     memory,

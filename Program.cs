@@ -1,8 +1,12 @@
+using Azure.AI.OpenAI;
+using OpenAI.Chat;
+using System.ClientModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Caching.Memory;
+using OpenAIServiceGpt4o;
 using OpenAIServiceGpt4o.Authorization;
 using OpenAIServiceGpt4o.Services;
 
@@ -10,15 +14,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 var config = builder.Configuration;
 
+var openAiEndpoint = config["OpenAI:Endpoint"] ?? throw new InvalidOperationException("OpenAI:Endpoint is required.");
+var openAiKey = config["OpenAI:Key"] ?? throw new InvalidOperationException("OpenAI:Key is required.");
+var openAiModel = config["OpenAI:ModelName"] ?? throw new InvalidOperationException("OpenAI:ModelName is required.");
+builder.Services.AddSingleton(
+  new AzureOpenAIClient(new Uri(openAiEndpoint), new ApiKeyCredential(openAiKey)).GetChatClient(openAiModel));
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
   .AddCookie(options =>
   {
     options.Events.OnSignedIn = async context =>
     {
-      var email = context.Principal?.Claims
-        .FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value
-        ?? context.Principal?.Claims
-          .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = context.Principal?.GetEmail();
       if (!string.IsNullOrWhiteSpace(email))
       {
         var userService = context.HttpContext.RequestServices.GetService<OpenAIServiceGpt4o.Services.IUserService>();

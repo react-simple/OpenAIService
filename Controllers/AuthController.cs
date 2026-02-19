@@ -33,8 +33,7 @@ namespace OpenAIServiceGpt4o.Controllers
       if (User.Identity?.IsAuthenticated != true)
         return Unauthorized();
 
-      var email = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       return Ok(new { email });
     }

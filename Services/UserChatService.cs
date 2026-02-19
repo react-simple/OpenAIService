@@ -94,9 +94,12 @@ namespace OpenAIServiceGpt4o.Services
       {
         chat.ChatStartDate = now;
         await using var cmd = new SqlCommand(
-          @"INSERT INTO [dbo].[Chat] ([Email], [ChatStartDate], [ChatUpdate], [Title], [Content])
-            VALUES (@Email, @ChatStartDate, @ChatUpdate, N'Chat #0', @Content);
-            SELECT CAST(SCOPE_IDENTITY() AS INT);",
+          @"DECLARE @id INT;
+            INSERT INTO [dbo].[Chat] ([Email], [ChatStartDate], [ChatUpdate], [Title], [Content])
+              VALUES (@Email, @ChatStartDate, @ChatUpdate, N'placeholder', @Content);
+            SET @id = SCOPE_IDENTITY();
+            UPDATE [dbo].[Chat] SET [Title] = N'Chat #' + CAST(@id AS NVARCHAR(20)) WHERE [ChatId] = @id;
+            SELECT @id;",
           connection);
         cmd.Parameters.AddWithValue("@Email", chat.Email);
         cmd.Parameters.AddWithValue("@ChatStartDate", chat.ChatStartDate);
@@ -106,14 +109,6 @@ namespace OpenAIServiceGpt4o.Services
         var id = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
         chat.ChatId = id;
         chat.Title = "Chat #" + id;
-
-        await using var updateTitleCmd = new SqlCommand(
-          @"UPDATE [dbo].[Chat] SET [Title] = @Title WHERE [ChatId] = @ChatId AND [Email] = @Email;",
-          connection);
-        updateTitleCmd.Parameters.AddWithValue("@ChatId", chat.ChatId);
-        updateTitleCmd.Parameters.AddWithValue("@Email", chat.Email);
-        updateTitleCmd.Parameters.AddWithValue("@Title", chat.Title);
-        await updateTitleCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         return;
       }
 

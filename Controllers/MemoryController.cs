@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenAIServiceGpt4o.Services;
-using System.Security.Claims;
 
 namespace OpenAIServiceGpt4o.Controllers
 {
@@ -20,8 +19,7 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
-      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();
@@ -33,8 +31,7 @@ namespace OpenAIServiceGpt4o.Controllers
     [HttpPut]
     public async Task<IActionResult> Put([FromBody] MemoryPutRequest request, CancellationToken cancellationToken)
     {
-      var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-        ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = User.GetEmail();
 
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();
