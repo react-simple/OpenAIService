@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { countWords, formatWithSuffix } from "utils";
 import { copyToClipboard } from "utils";
-import { Button, CopyButton, Modal } from "components";
+import { Button, IconButton, Modal } from "components";
 import { CopyIcon } from "icons";
 
 interface MemoryModalProps {
@@ -37,9 +37,9 @@ export const MemoryModal = ({ open, onClose, initialValue, onSave }: MemoryModal
       <Modal.Modal onClick={(e) => e.stopPropagation()}>
         <Modal.ModalHeader>
           <span>Memory — {formatWithSuffix(countWords(draft))} words</span>
-          <CopyButton type="button" onClick={handleCopy} title="Copy memory">
+          <IconButton type="button" onClick={handleCopy} title="Copy memory">
             <CopyIcon />
-          </CopyButton>
+          </IconButton>
         </Modal.ModalHeader>
         <Modal.ModalBody>
           <Modal.MemoryTextArea

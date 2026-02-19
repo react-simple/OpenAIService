@@ -4,7 +4,7 @@ export * from "./App";
 export * from "./Button";
 export * from "./ChatsModal";
 export * from "./ConfirmationModal";
-export * from "./CopyButton";
+export * from "./IconButton";
 export * from "./MemoryModal";
 export * from "./Toolbar";
 export { Modal };

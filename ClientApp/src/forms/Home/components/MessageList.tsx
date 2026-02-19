@@ -3,7 +3,7 @@ import type { ChatDisplayMessage } from "types";
 import { DisplayMessageType } from "types";
 import { copyToClipboard } from "utils";
 import * as Styled from "../Home.styles";
-import { CopyButton } from "components";
+import { IconButton } from "components";
 import { CopyIcon, RefreshIcon, TrashIcon } from "icons";
 
 interface MessageListProps {
@@ -45,16 +45,16 @@ export const MessageList = ({
             </Styled.MessageBubble>
             <Styled.MessageActions>
               {isLastAssistant && (
-                <CopyButton type="button" onClick={onRegenerateLastResponse} title="Regenerate" disabled={loading}>
+                <IconButton type="button" onClick={onRegenerateLastResponse} title="Regenerate" disabled={loading}>
                   <RefreshIcon />
-                </CopyButton>
+                </IconButton>
               )}
-              <CopyButton type="button" onClick={() => onDeleteMessage(i)} title="Delete message">
+              <IconButton type="button" onClick={() => onDeleteMessage(i)} title="Delete message">
                 <TrashIcon />
-              </CopyButton>
-              <CopyButton type="button" onClick={() => void copyToClipboard(msg.content)} title="Copy">
+              </IconButton>
+              <IconButton type="button" onClick={() => void copyToClipboard(msg.content)} title="Copy">
                 <CopyIcon />
-              </CopyButton>
+              </IconButton>
             </Styled.MessageActions>
           </Styled.MessageBlock>
         );

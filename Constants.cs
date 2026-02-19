@@ -2,6 +2,9 @@ namespace OpenAIServiceGpt4o
 {
   public static class Constants
   {
+    /// <summary>Claim type for email used by Google OAuth (fallback when ClaimTypes.Email is not set).</summary>
+    public const string ClaimTypeEmailFallback = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress";
+
     /// <summary>Duration to cache allowed-user lookups (reduces SQL roundtrips).</summary>
     public const int AllowedUserCacheDurationMinutes = 5;
 

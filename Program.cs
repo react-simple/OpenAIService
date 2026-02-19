@@ -1,10 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Azure.AI.OpenAI;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Caching.Memory;
 using OpenAIServiceGpt4o.Authorization;
 using OpenAIServiceGpt4o.Services;
+using OpenAI.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,10 +17,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
   {
     options.Events.OnSignedIn = async context =>
     {
-      var email = context.Principal?.Claims
-        .FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value
-        ?? context.Principal?.Claims
-          .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+      var email = context.Principal?.GetEmail();
       if (!string.IsNullOrWhiteSpace(email))
       {
         var userService = context.HttpContext.RequestServices.GetService<OpenAIServiceGpt4o.Services.IUserService>();
@@ -32,6 +31,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     options.ClientId = config["Google:ClientId"] ?? "";
     options.ClientSecret = config["Google:ClientSecret"] ?? "";
   });
+
+var endpoint = config["OpenAI:Endpoint"] ?? "";
+var key = config["OpenAI:Key"] ?? "";
+var model = config["OpenAI:ModelName"] ?? "";
+if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(model))
+  throw new InvalidOperationException("Azure OpenAI is not configured. Set OpenAI:Endpoint, OpenAI:Key, and OpenAI:ModelName.");
+
+var openAIClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(key));
+builder.Services.AddSingleton(openAIClient.GetChatClient(model));
 
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IAllowedUserService, AllowedUserService>();

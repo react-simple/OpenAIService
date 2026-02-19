@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, CopyButton } from "components";
+import { Button, IconButton } from "components";
 import { LogoutIcon } from "icons";
 import { useAuth } from "contexts/AuthContext";
 import * as ToolbarStyled from "./Toolbar.styles";
@@ -40,9 +40,9 @@ export const Toolbar = () => {
       {user?.email && (
         <ToolbarStyled.UserEmail title={user.email}>{user.email}</ToolbarStyled.UserEmail>
       )}
-      <CopyButton type="button" onClick={logout} title="Logout">
+      <IconButton type="button" onClick={logout} title="Logout">
         <LogoutIcon />
-      </CopyButton>
+      </IconButton>
     </ToolbarStyled.Toolbar>
   );
 };
