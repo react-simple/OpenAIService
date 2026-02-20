@@ -1,10 +1,11 @@
 import { createGlobalStyle } from 'styled-components';
 
 export const GlobalStyles = createGlobalStyle`
-  body { 
+  body {
     background-color: white;
     font-size: 18px;
-    padding: 0.5em;
+    margin: 0;
+    padding: 0;
   }
 
   @media screen and (max-width: 640px) {
