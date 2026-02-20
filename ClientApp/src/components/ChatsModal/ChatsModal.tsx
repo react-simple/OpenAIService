@@ -82,7 +82,7 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
               {chats.map((chat) => (
                 <Styled.ChatListItem key={chat.chatId} onClick={() => handleSelect(chat.chatId)}>
                   <Styled.ChatItemContent>
-                    <Styled.ChatTitle>{chat.title}</Styled.ChatTitle>
+                    <Styled.ChatTitle>{chat.title}{chat.chatId === currentChatId ? " (current)" : ""}</Styled.ChatTitle>
                     <Styled.ChatDate>{formatChatUpdate(chat.chatUpdate)}</Styled.ChatDate>
                   </Styled.ChatItemContent>
                   <Styled.DeleteButton
