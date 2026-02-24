@@ -1,24 +1,32 @@
-using Microsoft.Data.SqlClient;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Azure.Storage.Blobs;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using OpenAIServiceGpt4o;
+using OpenAIServiceGpt4o.Helpers;
+using OpenAIServiceGpt4o.Models;
 
 namespace OpenAIServiceGpt4o.Services
 {
-  public interface IAllowedUserService
-  {
-    Task<bool> IsAllowedAsync(string email, bool allowCached = true, CancellationToken cancellationToken = default);
-  }
-
-  public class AllowedUserService : IAllowedUserService
+  public class AllowedUserService
   {
     private const string CacheKeyPrefix = "AllowedUser:";
-    private readonly string _connectionString;
+    private readonly BlobServiceClient _storageClient;
     private readonly IMemoryCache _cache;
-
-    public AllowedUserService(IConfiguration configuration, IMemoryCache cache)
+    private readonly string _containerName;
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-      _connectionString = configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+      PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      PropertyNameCaseInsensitive = true,
+    };
+
+    public AllowedUserService(BlobServiceClient storageClient, IMemoryCache cache, IOptions<AzureStorageOptions> storageOptions)
+    {
+      _storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
       _cache = cache;
+      _containerName = storageOptions?.Value?.ContainerName ?? throw new ArgumentNullException(nameof(storageOptions));
     }
 
     public async Task<bool> IsAllowedAsync(string email, bool allowCached = true, CancellationToken cancellationToken = default)
@@ -31,17 +39,22 @@ namespace OpenAIServiceGpt4o.Services
       if (allowCached && _cache.TryGetValue(key, out bool cached))
         return cached;
 
-      await using var connection = new SqlConnection(_connectionString);
-      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+      var sanitized = BlobHelper.SanitizeEmailForBlobPath(email);
+      var path = $"{Constants.Storage.UsersPrefix}{sanitized}.json";
+      var container = _storageClient.GetBlobContainerClient(_containerName);
+      var client = container.GetBlobClient(path);
 
-      await using var cmd = new SqlCommand(
-        "SELECT 1 FROM [dbo].[User] WHERE [Email] = @Email AND [IsEnabled] = 1",
-        connection);
-      cmd.Parameters.AddWithValue("@Email", email);
+      if (!await client.ExistsAsync(cancellationToken).ConfigureAwait(false))
+      {
+        _cache.Set(key, false, TimeSpan.FromMinutes(Constants.Cache.AllowedUserCacheDurationMinutes));
+        return false;
+      }
 
-      await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-      var allowed = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-      _cache.Set(key, allowed, TimeSpan.FromMinutes(Constants.AllowedUserCacheDurationMinutes));
+      var response = await client.DownloadContentAsync(cancellationToken).ConfigureAwait(false);
+      var json = response.Value.Content.ToString();
+      var dto = JsonSerializer.Deserialize<UserRecord>(json, JsonOptions);
+      var allowed = dto?.IsEnabled ?? false;
+      _cache.Set(key, allowed, TimeSpan.FromMinutes(Constants.Cache.AllowedUserCacheDurationMinutes));
       return allowed;
     }
   }

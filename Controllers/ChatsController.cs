@@ -11,9 +11,9 @@ namespace OpenAIServiceGpt4o.Controllers
   [Authorize]
   public class ChatsController : ControllerBase
   {
-    private readonly IUserChatService _chatService;
+    private readonly UserChatService _chatService;
 
-    public ChatsController(IUserChatService chatService)
+    public ChatsController(UserChatService chatService)
     {
       _chatService = chatService;
     }
@@ -30,8 +30,8 @@ namespace OpenAIServiceGpt4o.Controllers
       return Ok(list);
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
     {
       var email = User.GetEmail();
 
@@ -46,8 +46,8 @@ namespace OpenAIServiceGpt4o.Controllers
       return Ok(chat);
     }
 
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
       var email = User.GetEmail();
 
@@ -62,8 +62,8 @@ namespace OpenAIServiceGpt4o.Controllers
       return NoContent();
     }
 
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Put(int id, [FromBody] ChatRequest request, CancellationToken cancellationToken)
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Put(Guid id, [FromBody] ChatRequest request, CancellationToken cancellationToken)
     {
       var email = User.GetEmail();
 

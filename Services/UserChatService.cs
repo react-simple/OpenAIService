@@ -1,78 +1,66 @@
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Data.SqlClient;
+using Azure.Storage.Blobs;
+using Microsoft.Extensions.Options;
+using OpenAIServiceGpt4o;
+using OpenAIServiceGpt4o.Helpers;
 using OpenAIServiceGpt4o.Models;
 
 namespace OpenAIServiceGpt4o.Services
 {
-  public interface IUserChatService
+  public class UserChatService
   {
-    /// <summary>Loads the chat from the database, or returns a new unsaved chat (ChatId = 0) when chatId is null or not found.</summary>
-    Task<Chat> GetChatAsync(string email, int? chatId, CancellationToken cancellationToken = default);
-
-    /// <summary>Lists the user's chats ordered by ChatUpdate descending.</summary>
-    Task<IReadOnlyList<ChatListItemDto>> GetChatListAsync(string email, CancellationToken cancellationToken = default);
-
-    /// <summary>Inserts or updates the chat. Sets ChatId and default Title on the entity when inserting.</summary>
-    Task SaveChatAsync(Chat chat, CancellationToken cancellationToken = default);
-
-    /// <summary>Deletes the chat for the user. Returns true if a row was deleted.</summary>
-    Task<bool> DeleteChatAsync(string email, int chatId, CancellationToken cancellationToken = default);
-
-    /// <summary>Updates only the chat content and ChatUpdate timestamp. Returns true if the chat existed and was updated.</summary>
-    Task<bool> UpdateChatContentAsync(string email, int chatId, IReadOnlyList<ChatMessageDto> content, CancellationToken cancellationToken = default);
-  }
-
-  public class UserChatService : IUserChatService
-  {
-    private readonly string _connectionString;
+    private readonly BlobServiceClient _storageClient;
+    private readonly string _containerName;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
       Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
       PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public UserChatService(IConfiguration configuration)
+    public UserChatService(BlobServiceClient storageClient, IOptions<AzureStorageOptions> storageOptions)
     {
-      _connectionString = configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+      _storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
+      _containerName = storageOptions?.Value?.ContainerName ?? throw new ArgumentNullException(nameof(storageOptions));
     }
 
-    public async Task<Chat> GetChatAsync(string email, int? chatId, CancellationToken cancellationToken = default)
+    private BlobContainerClient GetContainer()
+    {
+      return _storageClient.GetBlobContainerClient(_containerName);
+    }
+
+    private static string ChatPath(string email, Guid chatId)
+    {
+      var sanitized = BlobHelper.SanitizeEmailForBlobPath(email);
+      return $"{Constants.Storage.ChatsPrefix}{sanitized}/{chatId:N}.json";
+    }
+
+    public async Task<Chat> GetChatAsync(string email, Guid? chatId, CancellationToken cancellationToken = default)
     {
       if (string.IsNullOrWhiteSpace(email))
         throw new ArgumentException("Email is required.", nameof(email));
 
-      if (chatId is null or 0)
+      if (chatId is null || chatId == Guid.Empty)
         return NewUnsavedChat(email);
 
-      await using var connection = new SqlConnection(_connectionString);
-      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+      var container = GetContainer();
+      var path = ChatPath(email, chatId.Value);
+      var client = container.GetBlobClient(path);
 
-      await using var cmd = new SqlCommand(
-        "SELECT [ChatId], [Email], [ChatStartDate], [ChatUpdate], [Title], [Content] FROM [dbo].[Chat] WHERE [ChatId] = @ChatId AND [Email] = @Email;",
-        connection);
-      cmd.Parameters.AddWithValue("@ChatId", chatId.Value);
-      cmd.Parameters.AddWithValue("@Email", email);
-
-      await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-
-      if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+      if (!await client.ExistsAsync(cancellationToken).ConfigureAwait(false))
         return NewUnsavedChat(email);
 
-      var contentJson = reader.IsDBNull(5) ? null : reader.GetString(5);
-      var content = string.IsNullOrEmpty(contentJson) ? null : JsonSerializer.Deserialize<ChatMessageDto[]>(contentJson, JsonOptions);
+      await using var stream = await client.OpenReadAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+      var chat = await JsonSerializer.DeserializeAsync<Chat>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
+      if (chat == null)
+        return NewUnsavedChat(email);
 
-      return new Chat
-      {
-        ChatId = reader.GetInt32(0),
-        Email = reader.GetString(1),
-        ChatStartDate = reader.GetDateTime(2),
-        ChatUpdate = reader.GetDateTime(3),
-        Title = reader.GetString(4),
-        Content = content?.Where(m => m.Role != ChatRole.System).ToArray(),
-      };
+      if (chat.Content != null)
+        chat.Content = chat.Content.Where(m => m.Role != ChatRole.System).ToArray();
+
+      return chat;
     }
 
     public async Task<IReadOnlyList<ChatListItemDto>> GetChatListAsync(string email, CancellationToken cancellationToken = default)
@@ -80,21 +68,28 @@ namespace OpenAIServiceGpt4o.Services
       if (string.IsNullOrWhiteSpace(email))
         return Array.Empty<ChatListItemDto>();
 
-      await using var connection = new SqlConnection(_connectionString);
-      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-      await using var cmd = new SqlCommand(
-        "SELECT [ChatId], [Title], [ChatUpdate] FROM [dbo].[Chat] WHERE [Email] = @Email ORDER BY [ChatUpdate] DESC;",
-        connection);
-      cmd.Parameters.AddWithValue("@Email", email);
-
+      var sanitized = BlobHelper.SanitizeEmailForBlobPath(email);
+      var prefix = $"{Constants.Storage.ChatsPrefix}{sanitized}/";
+      var container = GetContainer();
       var list = new List<ChatListItemDto>();
-      await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
-      while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-        list.Add(new ChatListItemDto { ChatId = reader.GetInt32(0), Title = reader.GetString(1), ChatUpdate = reader.GetDateTime(2) });
+      await foreach (var item in container.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken).ConfigureAwait(false))
+      {
+        var path = item.Name;
+        var fileName = path.Length > prefix.Length ? path.Substring(prefix.Length) : "";
+        if (fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+          fileName = fileName.Substring(0, fileName.Length - 5);
+        if (!Guid.TryParse(fileName, out var id))
+          continue;
 
-      return list;
+        var chat = await GetChatAsync(email, id, cancellationToken).ConfigureAwait(false);
+        if (chat.ChatId == Guid.Empty)
+          continue;
+
+        list.Add(new ChatListItemDto { ChatId = chat.ChatId, Title = chat.Title, ChatUpdate = chat.ChatUpdate });
+      }
+
+      return list.OrderByDescending(c => c.ChatUpdate).ToList();
     }
 
     public async Task SaveChatAsync(Chat chat, CancellationToken cancellationToken = default)
@@ -105,68 +100,44 @@ namespace OpenAIServiceGpt4o.Services
       var now = DateTime.UtcNow;
       chat.ChatUpdate = now;
 
-      await using var connection = new SqlConnection(_connectionString);
-      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-      if (chat.ChatId == 0)
+      if (chat.ChatId == Guid.Empty)
       {
+        chat.ChatId = Guid.NewGuid();
         chat.ChatStartDate = now;
-        await using var cmd = new SqlCommand(
-          @"DECLARE @Id INT;
-            INSERT INTO [dbo].[Chat] ([Email], [ChatStartDate], [ChatUpdate], [Title], [Content])
-              VALUES (@Email, @ChatStartDate, @ChatUpdate, N'', @Content);
-            SET @Id = SCOPE_IDENTITY();
-            UPDATE [dbo].[Chat] SET [Title] = N'Chat #' + CAST(@Id AS NVARCHAR(20)) WHERE [ChatId] = @Id;
-            SELECT @Id;",
-          connection);
-        cmd.Parameters.AddWithValue("@Email", chat.Email);
-        cmd.Parameters.AddWithValue("@ChatStartDate", chat.ChatStartDate);
-        cmd.Parameters.AddWithValue("@ChatUpdate", chat.ChatUpdate);
-        cmd.Parameters.AddWithValue("@Content", chat.Content is null or { Length: 0 } ? DBNull.Value : JsonSerializer.Serialize(chat.Content, JsonOptions));
-
-        var id = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
-        chat.ChatId = id;
-        chat.Title = "Chat #" + id;
-        return;
+        chat.Title = "Chat #" + chat.ChatId;
       }
 
-      await using var updateCmd = new SqlCommand(
-        @"UPDATE [dbo].[Chat] SET [Content] = @Content, [ChatUpdate] = @ChatUpdate, [Title] = @Title
-          WHERE [ChatId] = @ChatId AND [Email] = @Email;",
-        connection);
-      updateCmd.Parameters.AddWithValue("@ChatId", chat.ChatId);
-      updateCmd.Parameters.AddWithValue("@Email", chat.Email);
-      updateCmd.Parameters.AddWithValue("@Content", chat.Content is null or { Length: 0 } ? DBNull.Value : JsonSerializer.Serialize(chat.Content, JsonOptions));
-      updateCmd.Parameters.AddWithValue("@ChatUpdate", chat.ChatUpdate);
-      updateCmd.Parameters.AddWithValue("@Title", chat.Title.Trim());
-
-      await updateCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+      var path = ChatPath(chat.Email, chat.ChatId);
+      var container = GetContainer();
+      var client = container.GetBlobClient(path);
+      var json = JsonSerializer.Serialize(chat, JsonOptions);
+      var bytes = Encoding.UTF8.GetBytes(json);
+      await using var stream = new MemoryStream(bytes);
+      await client.UploadAsync(stream, overwrite: true, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<bool> DeleteChatAsync(string email, int chatId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteChatAsync(string email, Guid chatId, CancellationToken cancellationToken = default)
     {
       if (string.IsNullOrWhiteSpace(email))
         return false;
 
-      if (chatId <= 0)
+      if (chatId == Guid.Empty)
         return false;
 
-      await using var connection = new SqlConnection(_connectionString);
-      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+      var path = ChatPath(email, chatId);
+      var container = GetContainer();
+      var client = container.GetBlobClient(path);
+      var exists = await client.ExistsAsync(cancellationToken).ConfigureAwait(false);
+      if (!exists.Value)
+        return false;
 
-      await using var cmd = new SqlCommand(
-        "DELETE FROM [dbo].[Chat] WHERE [Email] = @Email AND [ChatId] = @ChatId;",
-        connection);
-      cmd.Parameters.AddWithValue("@Email", email);
-      cmd.Parameters.AddWithValue("@ChatId", chatId);
-
-      var rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-      return rows > 0;
+      await client.DeleteIfExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+      return true;
     }
 
-    public async Task<bool> UpdateChatContentAsync(string email, int chatId, IReadOnlyList<ChatMessageDto> content, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateChatContentAsync(string email, Guid chatId, IReadOnlyList<ChatMessageDto> content, CancellationToken cancellationToken = default)
     {
-      if (string.IsNullOrWhiteSpace(email) || chatId <= 0)
+      if (string.IsNullOrWhiteSpace(email) || chatId == Guid.Empty)
         return false;
 
       var chat = await GetChatAsync(email, chatId, cancellationToken).ConfigureAwait(false);
@@ -178,20 +149,14 @@ namespace OpenAIServiceGpt4o.Services
       chat.ChatUpdate = now;
       chat.Content = content.Count > 0 ? content.Where(m => m.Role != ChatRole.System).ToArray() : null;
 
-      await using var connection = new SqlConnection(_connectionString);
-      await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-      await using var cmd = new SqlCommand(
-        @"UPDATE [dbo].[Chat] SET [Content] = @Content, [ChatUpdate] = @ChatUpdate
-          WHERE [ChatId] = @ChatId AND [Email] = @Email;",
-        connection);
-      cmd.Parameters.AddWithValue("@ChatId", chatId);
-      cmd.Parameters.AddWithValue("@Email", email);
-      cmd.Parameters.AddWithValue("@Content", chat.Content is null or { Length: 0 } ? DBNull.Value : JsonSerializer.Serialize(chat.Content, JsonOptions));
-      cmd.Parameters.AddWithValue("@ChatUpdate", chat.ChatUpdate);
-
-      var rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-      return rows > 0;
+      var path = ChatPath(email, chatId);
+      var container = GetContainer();
+      var client = container.GetBlobClient(path);
+      var json = JsonSerializer.Serialize(chat, JsonOptions);
+      var bytes = Encoding.UTF8.GetBytes(json);
+      await using var stream = new MemoryStream(bytes);
+      await client.UploadAsync(stream, overwrite: true, cancellationToken).ConfigureAwait(false);
+      return true;
     }
 
     private static Chat NewUnsavedChat(string email)
@@ -199,7 +164,7 @@ namespace OpenAIServiceGpt4o.Services
       var now = DateTime.UtcNow;
       return new Chat
       {
-        ChatId = 0,
+        ChatId = Guid.Empty,
         Email = email,
         ChatStartDate = now,
         ChatUpdate = now,

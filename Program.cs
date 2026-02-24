@@ -1,9 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure.AI.OpenAI;
+using Azure.Storage.Blobs;
+using Azure.Storage;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using OpenAIServiceGpt4o;
 using OpenAIServiceGpt4o.Authorization;
 using OpenAIServiceGpt4o.Helpers;
 using OpenAIServiceGpt4o.Services;
@@ -22,7 +26,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
       var email = context.Principal?.GetEmail();
       if (!string.IsNullOrWhiteSpace(email))
       {
-        var userService = context.HttpContext.RequestServices.GetService<OpenAIServiceGpt4o.Services.IUserService>();
+        var userService = context.HttpContext.RequestServices.GetService<OpenAIServiceGpt4o.Services.UserService>();
         if (userService != null)
           await userService.UpdateLastLoginAsync(email, context.HttpContext.RequestAborted).ConfigureAwait(false);
       }
@@ -43,12 +47,22 @@ if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key) || string.IsNull
 var openAIClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(key));
 builder.Services.AddSingleton(openAIClient.GetChatClient(model));
 
+builder.Services.Configure<AzureStorageOptions>(config.GetSection(AzureStorageOptions.SectionName));
+var storageOptions = config.GetSection(AzureStorageOptions.SectionName).Get<AzureStorageOptions>();
+if (storageOptions == null || string.IsNullOrEmpty(storageOptions.AccountName) || string.IsNullOrEmpty(storageOptions.AccountKey) || string.IsNullOrEmpty(storageOptions.ContainerName))
+  throw new InvalidOperationException("Azure Storage is not configured. Set AzureStorage:AccountName, AzureStorage:AccountKey, and AzureStorage:ContainerName (e.g. trmopenaiservice).");
+
+var blobServiceUri = new Uri($"https://{storageOptions.AccountName}.blob.core.windows.net");
+var storageCredential = new StorageSharedKeyCredential(storageOptions.AccountName, storageOptions.AccountKey);
+var blobServiceClient = new BlobServiceClient(blobServiceUri, storageCredential);
+builder.Services.AddSingleton(blobServiceClient);
+
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<IAllowedUserService, AllowedUserService>();
-builder.Services.AddScoped<IErrorLogService, ErrorLogService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IUserMemoryService, UserMemoryService>();
-builder.Services.AddScoped<IUserChatService, UserChatService>();
+builder.Services.AddScoped<AllowedUserService>();
+builder.Services.AddScoped<ErrorLogService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<UserMemoryService>();
+builder.Services.AddScoped<UserChatService>();
 builder.Services.AddAuthorization(options =>
 {
   options.AddPolicy("AllowedUser", policy =>
@@ -93,7 +107,7 @@ app.Use(async (context, next) =>
   }
   catch (Exception ex)
   {
-    var logService = context.RequestServices.GetService<OpenAIServiceGpt4o.Services.IErrorLogService>();
+    var logService = context.RequestServices.GetService<OpenAIServiceGpt4o.Services.ErrorLogService>();
     if (logService != null)
       await logService.LogAsync(ex).ConfigureAwait(false);
     throw;

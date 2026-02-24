@@ -15,9 +15,9 @@ namespace OpenAIServiceGpt4o.Controllers
   public class ChatController : ControllerBase
   {
     private readonly ChatClient _chatClient;
-    private readonly IUserChatService _chatService;
+    private readonly UserChatService _chatService;
 
-    public ChatController(ChatClient chatClient, IUserChatService chatService)
+    public ChatController(ChatClient chatClient, UserChatService chatService)
     {
       _chatClient = chatClient;
       _chatService = chatService;
@@ -119,7 +119,7 @@ namespace OpenAIServiceGpt4o.Controllers
       var userMessages = fullMessages.Where(m => m.Role == ChatRole.User).ToList();
       var userOnlyLength = userMessages.Sum(m => (m.Content ?? "").Length);
       var userMessageCount = userMessages.Count;
-      var conditionMet = userOnlyLength >= Constants.MinUserCharsForTitle || userMessageCount >= Constants.MinUserMessagesForTitle;
+      var conditionMet = userOnlyLength >= Constants.ChatTitle.MinUserCharsForTitle || userMessageCount >= Constants.ChatTitle.MinUserMessagesForTitle;
 
       if (conditionMet)
       {
@@ -144,7 +144,7 @@ namespace OpenAIServiceGpt4o.Controllers
 
       var titleMessages = new List<ChatMessage>
       {
-        new SystemChatMessage(Constants.ChatTitleGenerationSystemMessage),
+        new SystemChatMessage(Constants.ChatTitle.GenerationSystemMessage),
         new UserChatMessage(conversationText)
       };
 
@@ -156,8 +156,8 @@ namespace OpenAIServiceGpt4o.Controllers
         if (string.IsNullOrEmpty(title))
           return;
 
-        if (title.Length > Constants.MaxChatTitleLength)
-          title = title[..Constants.MaxChatTitleLength];
+        if (title.Length > Constants.ChatTitle.MaxLength)
+          title = title[..Constants.ChatTitle.MaxLength];
 
         if (temp)
           title = title.TrimEnd('*').TrimEnd() + "*";

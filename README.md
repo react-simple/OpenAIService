@@ -8,13 +8,24 @@ React frontend (ClientApp) + .NET backend. Chat UI calls Azure OpenAI via the ba
 
 The backend needs **OpenAI:Endpoint**, **OpenAI:Key**, **OpenAI:ModelName** for Azure OpenAI.
 
-### Azure SQL (allowed users)
+### Azure Blob Storage (data and allowed users)
 
-The backend uses an Azure SQL database to determine which users are allowed to access the app after Google sign-in. Configure the connection string:
+The backend uses Azure Blob Storage for chats, memory, error logs, and to determine which users are allowed after Google sign-in. Configure (for local development, use **user secrets** as recommended below):
 
-- **ConnectionStrings:DefaultConnection** — Azure SQL connection string.
+- **AzureStorage:AccountName** — Storage account name (e.g. `mystorageaccount`).
+- **AzureStorage:AccountKey** — Storage account access key (primary or secondary).
+- **AzureStorage:ContainerName** — Blob container name (e.g. `trmopenaiservice`).
 
-The `[dbo].[User]` table must exist (Email, IsEnabled). Create it using the **Database** project (e.g. run the script `Database/Tables/User.sql` or publish the Database project to your Azure SQL database).
+User blobs must already exist; the app does not create them. Create a block blob per allowed user at path `Users/<SanitizedEmail>.json` (email is sanitized for blob paths; blob names end with `.json`). Blob content is JSON, for example:
+
+```json
+{
+  "email": "user@example.com",
+  "isEnabled": true,
+  "creationDate": "2026-02-15T17:14:57.39Z",
+  "lastLoginDate": "2026-02-23T08:20:00.353Z"
+}
+```
 
 ### Google OAuth (sign-in)
 
@@ -29,11 +40,11 @@ Optional:
 
 ### Azure Web App (production)
 
-Set all values as **Application settings** in the Azure Portal (Configuration → Application settings): `OpenAI__Endpoint`, `OpenAI__Key`, `OpenAI__ModelName`, `ConnectionStrings__DefaultConnection` (Azure SQL connection string), `Google__ClientId`, `Google__ClientSecret`, and optionally `FrontendUrl`, `AllowedOrigins`.
+Set all values as **Application settings** in the Azure Portal (Configuration → Application settings): `OpenAI__Endpoint`, `OpenAI__Key`, `OpenAI__ModelName`, `AzureStorage__AccountName`, `AzureStorage__AccountKey`, `AzureStorage__ContainerName`, `Google__ClientId`, `Google__ClientSecret`, and optionally `FrontendUrl`, `AllowedOrigins`.
 
-### Local development (user secrets)
+### Local development (user secrets, recommended)
 
-Use **user secrets** so credentials are not in the repo:
+Store all secrets in **user secrets** so credentials are not in the repo:
 
 ```bash
 # From the project folder (where the .csproj is)
@@ -42,7 +53,9 @@ dotnet user-secrets set "OpenAI:Key" "your-api-key"
 dotnet user-secrets set "OpenAI:ModelName" "your-deployment-name"
 dotnet user-secrets set "Google:ClientId" "your-google-client-id"
 dotnet user-secrets set "Google:ClientSecret" "your-google-client-secret"
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=tcp:yourserver.database.windows.net,1433;Database=yourdb;User ID=...;Password=...;Encrypt=True;..."
+dotnet user-secrets set "AzureStorage:AccountName" "yourstorageaccount"
+dotnet user-secrets set "AzureStorage:AccountKey" "your-base64-access-key"
+dotnet user-secrets set "AzureStorage:ContainerName" "trmopenaiservice"
 ```
 
 User secrets are loaded by the .NET configuration and override appsettings. Same key names as in Azure (use `__` for nested keys in Azure, e.g. `Google__ClientId`).

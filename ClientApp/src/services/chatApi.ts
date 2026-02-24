@@ -1,4 +1,5 @@
 import { ENDPOINTS } from "consts";
+import type { Guid } from "utils";
 
 export type ChatRole = "user" | "system" | "assistant";
 
@@ -9,7 +10,7 @@ export interface ChatMessage {
 
 export interface ChatRequest {
   messages: ChatMessage[];
-  chatId?: number | null;
+  chatId?: Guid | null;
   /** When true (default), assistant messages are sent to OpenAI; when false, only user and system messages are sent. */
   includeResponses?: boolean;
   /** When true (default), system (memory) message is sent to OpenAI; when false, it is omitted. */
@@ -17,19 +18,19 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
-  chatId: number;
+  chatId: Guid;
   messages: ChatMessage[];
 }
 
 export async function postChat(
   messages: ChatMessage[],
-  chatId?: number | null,
+  chatId?: Guid | null,
   includeResponses = true,
   includeMemory = true,
 ): Promise<ChatResponse> {
   const body: ChatRequest = { messages, includeResponses, includeMemory };
 
-  if (chatId != null)
+  if (chatId != null && chatId !== "")
     body.chatId = chatId;
 
   const res = await fetch(ENDPOINTS.chat.post, {

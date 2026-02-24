@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Button, ChatsModal } from "components";
+import type { Guid } from "utils";
 
 interface ChatsButtonAndModalProps {
-  currentChatId: number | null;
-  onSelectChat: (chatId: number) => void;
+  currentChatId: Guid | null;
+  onSelectChat: (chatId: Guid) => void;
   onNewChat: () => void;
 }
 

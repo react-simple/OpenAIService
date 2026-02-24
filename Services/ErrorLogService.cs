@@ -1,20 +1,22 @@
-using Microsoft.Data.SqlClient;
+using System.Text;
+using System.Text.Json;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
+using Microsoft.Extensions.Options;
+using OpenAIServiceGpt4o;
+using OpenAIServiceGpt4o.Helpers;
 
 namespace OpenAIServiceGpt4o.Services
 {
-  public interface IErrorLogService
+  public class ErrorLogService
   {
-    Task LogAsync(Exception ex, string? message = null, CancellationToken cancellationToken = default);
-  }
+    private readonly BlobServiceClient _storageClient;
+    private readonly string _containerName;
 
-  public class ErrorLogService : IErrorLogService
-  {
-    private readonly string _connectionString;
-
-    public ErrorLogService(IConfiguration configuration)
+    public ErrorLogService(BlobServiceClient storageClient, IOptions<AzureStorageOptions> storageOptions)
     {
-      _connectionString = configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+      _storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
+      _containerName = storageOptions?.Value?.ContainerName ?? throw new ArgumentNullException(nameof(storageOptions));
     }
 
     public async Task LogAsync(Exception ex, string? message = null, CancellationToken cancellationToken = default)
@@ -29,21 +31,24 @@ namespace OpenAIServiceGpt4o.Services
 
       try
       {
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        var now = DateTime.UtcNow;
+        var year = now.Year;
+        var date = now.ToString("yyyy-MM-dd");
+        var path = $"{Constants.Storage.ErrorsPrefix}{year}/{date}.txt";
 
-        await using var cmd = new SqlCommand(
-          "INSERT INTO [dbo].[Error] ([CreatedAt], [Message], [FullException]) VALUES (@CreatedAt, @Message, @FullException);",
-          connection);
-        cmd.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
-        cmd.Parameters.AddWithValue("@Message", (object?)shortMessage ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@FullException", (object?)fullException ?? DBNull.Value);
+        var container = _storageClient.GetBlobContainerClient(_containerName);
+        var logClient = container.GetAppendBlobClient(path);
 
-        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        await logClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var line = JsonSerializer.Serialize(new { at = now, message = shortMessage, full = fullException }) + "\n";
+        var bytes = Encoding.UTF8.GetBytes(line);
+        await using var stream = new MemoryStream(bytes);
+        await logClient.AppendBlockAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
       }
       catch
       {
-        // Avoid throwing if error logging fails (e.g. DB down or Error table missing).
+        // Avoid throwing if error logging fails.
       }
     }
   }

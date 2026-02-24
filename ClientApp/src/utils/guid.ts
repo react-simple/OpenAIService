@@ -1,3 +1,5 @@
+export type Guid = string;
+
 export const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 
 // https://stackoverflow.com/questions/26501688/a-typescript-guid-class

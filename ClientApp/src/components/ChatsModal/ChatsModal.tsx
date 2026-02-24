@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { formatChatUpdate } from "utils/formatting";
 import { Button, CONFIRM_DELETE_MESSAGE, ConfirmationModal, Modal } from "components";
 import { useChats } from "hooks";
+import type { Guid } from "utils";
 import type { ChatListItem } from "services/chatsApi";
 import { TrashIcon } from "icons";
 import * as Styled from "./ChatsModal.styles";
@@ -9,9 +10,9 @@ import * as Styled from "./ChatsModal.styles";
 interface ChatsModalProps {
   open: boolean;
   onClose: () => void;
-  onSelectChat: (chatId: number) => void;
+  onSelectChat: (chatId: Guid) => void;
   onNewChat?: () => void;
-  currentChatId?: number | null;
+  currentChatId?: Guid | null;
 }
 
 export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChatId = null }: ChatsModalProps) => {
@@ -19,7 +20,7 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingDeleteChatId, setPendingDeleteChatId] = useState<number | null>(null);
+  const [pendingDeleteChatId, setPendingDeleteChatId] = useState<Guid | null>(null);
 
   const loadChats = useCallback(() => {
     setLoading(true);
@@ -39,7 +40,7 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
 
   if (!open) return null;
 
-  const handleSelect = (chatId: number) => {
+  const handleSelect = (chatId: Guid) => {
     onSelectChat(chatId);
     onClose();
   };
@@ -49,7 +50,7 @@ export const ChatsModal = ({ open, onClose, onSelectChat, onNewChat, currentChat
     onClose();
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, chatId: number) => {
+  const handleDeleteClick = (e: React.MouseEvent, chatId: Guid) => {
     e.stopPropagation();
     setPendingDeleteChatId(chatId);
   };

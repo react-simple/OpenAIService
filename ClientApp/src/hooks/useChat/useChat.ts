@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { postChat } from "services";
 import type { ChatMessage } from "services/chatApi";
-import { countWords } from "utils";
+import { countWords, type Guid } from "utils";
 import type { UseChatsReturn } from "./useChats";
 
 export type { ChatMessage } from "services/chatApi";
@@ -46,7 +46,7 @@ export interface UseChatReturn {
   loading: boolean;
   sendMessage: (input: string) => Promise<void>;
   regenerateLastResponse: () => Promise<void>;
-  loadChat: (chatId: number) => void;
+  loadChat: (chatId: Guid) => void;
   startNewChat: () => void;
   deleteMessage: (index: number) => void;
 }
@@ -153,7 +153,7 @@ export function useChat({ chats, memory, sendOptions }: UseChatParams): UseChatR
     }
   }, [loading, chatHistory, memory, currentChatId, sendOptions, setCurrentChatId]);
 
-  const loadChat = useCallback((chatId: number) => {
+  const loadChat = useCallback((chatId: Guid) => {
     getChat(chatId).then((chat) => {
       const content = chat.content ?? [];
       const displayHistory: ChatDisplayMessage[] = content.map((m) => ({

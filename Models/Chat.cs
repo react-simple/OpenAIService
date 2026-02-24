@@ -1,9 +1,9 @@
 namespace OpenAIServiceGpt4o.Models
 {
-  /// <summary>Entity representing a row in [dbo].[Chat]. ChatId = 0 when unsaved.</summary>
+  /// <summary>Chat entity. ChatId = Guid.Empty when unsaved.</summary>
   public class Chat
   {
-    public int ChatId { get; set; }
+    public Guid ChatId { get; set; }
     public string Email { get; set; } = "";
     public DateTime ChatStartDate { get; set; }
     public DateTime ChatUpdate { get; set; }

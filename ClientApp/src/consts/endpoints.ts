@@ -1,3 +1,5 @@
+import type { Guid } from "utils";
+
 // In production (e.g. Azure Web App) leave unset so API calls use same origin.
 // For local dev with separate backend, set REACT_APP_API_ORIGIN in .env.development or .env.local.
 const API_ORIGIN = process.env.REACT_APP_API_ORIGIN ?? "";
@@ -17,8 +19,8 @@ export const ENDPOINTS = {
   },
   chats: {
     list: `${API_ORIGIN}/api/chats`,
-    get: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
-    put: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
-    delete: (id: number) => `${API_ORIGIN}/api/chats/${id}`,
+    get: (id: Guid) => `${API_ORIGIN}/api/chats/${id}`,
+    put: (id: Guid) => `${API_ORIGIN}/api/chats/${id}`,
+    delete: (id: Guid) => `${API_ORIGIN}/api/chats/${id}`,
   },
 };

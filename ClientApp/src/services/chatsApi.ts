@@ -1,14 +1,15 @@
 import { ENDPOINTS } from "consts";
+import type { Guid } from "utils";
 import type { ChatMessage } from "./chatApi";
 
 export interface ChatListItem {
-  chatId: number;
+  chatId: Guid;
   title: string;
   chatUpdate: string | Date;
 }
 
 export interface Chat {
-  chatId: number;
+  chatId: Guid;
   title: string;
   chatUpdate: string | Date;
   content: ChatMessage[] | null;
@@ -31,7 +32,7 @@ export async function getChats(): Promise<ChatListItem[]> {
   return res.json() as Promise<ChatListItem[]>;
 }
 
-export async function getChat(chatId: number): Promise<Chat> {
+export async function getChat(chatId: Guid): Promise<Chat> {
   const res = await fetch(ENDPOINTS.chats.get(chatId), {
     method: "GET",
     credentials: "include",
@@ -51,7 +52,7 @@ export async function getChat(chatId: number): Promise<Chat> {
   return res.json() as Promise<Chat>;
 }
 
-export async function deleteChat(chatId: number): Promise<void> {
+export async function deleteChat(chatId: Guid): Promise<void> {
   const res = await fetch(ENDPOINTS.chats.delete(chatId), {
     method: "DELETE",
     credentials: "include",
@@ -69,7 +70,7 @@ export async function deleteChat(chatId: number): Promise<void> {
   }
 }
 
-export async function putChat(chatId: number, messages: ChatMessage[]): Promise<void> {
+export async function putChat(chatId: Guid, messages: ChatMessage[]): Promise<void> {
   const res = await fetch(ENDPOINTS.chats.put(chatId), {
     method: "PUT",
     credentials: "include",

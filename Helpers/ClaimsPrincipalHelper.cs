@@ -16,7 +16,7 @@ namespace OpenAIServiceGpt4o.Helpers
       if (!string.IsNullOrWhiteSpace(value))
         return value;
 
-      return principal.Claims.FirstOrDefault(c => c.Type == Constants.ClaimTypeEmailFallback)?.Value;
+      return principal.Claims.FirstOrDefault(c => c.Type == Constants.Claims.ClaimTypeEmailFallback)?.Value;
     }
   }
 }

@@ -10,9 +10,9 @@ namespace OpenAIServiceGpt4o.Controllers
   [Authorize]
   public class MemoryController : ControllerBase
   {
-    private readonly IUserMemoryService _memoryService;
+    private readonly UserMemoryService _memoryService;
 
-    public MemoryController(IUserMemoryService memoryService)
+    public MemoryController(UserMemoryService memoryService)
     {
       _memoryService = memoryService;
     }
