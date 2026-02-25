@@ -1,11 +1,9 @@
 import { useCallback, useState } from "react";
 import { getChat, getChats, putChat, deleteChat } from "services";
 import type { Guid } from "utils";
-import type { Chat, ChatListItem } from "services/chatsApi";
-import type { ChatMessage } from "services/chatApi";
+import type { Chat, ChatListItem, ChatMessage } from "services";
 
-export type { Chat, ChatListItem } from "services/chatsApi";
-export type { ChatMessage } from "services/chatApi";
+export type { Chat, ChatListItem } from "services";
 
 export interface UseChatsReturn {
   currentChatId: Guid | null;

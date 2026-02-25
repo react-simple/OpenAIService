@@ -1,6 +1,6 @@
 namespace OpenAIServiceGpt4o.Models
 {
-  public class UserRecord
+  public class User
   {
     public string Email { get; set; } = "";
     public bool IsEnabled { get; set; }

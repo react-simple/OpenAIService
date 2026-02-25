@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 import { postChat } from "services";
-import type { ChatMessage } from "services/chatApi";
+import type { ChatMessage } from "services";
 import { countWords, type Guid } from "utils";
 import type { UseChatsReturn } from "./useChats";
 
-export type { ChatMessage } from "services/chatApi";
+export type { ChatMessage } from "services";
 
 export enum DisplayMessageType {
   Normal = "normal",
@@ -154,17 +154,23 @@ export function useChat({ chats, memory, sendOptions }: UseChatParams): UseChatR
   }, [loading, chatHistory, memory, currentChatId, sendOptions, setCurrentChatId]);
 
   const loadChat = useCallback((chatId: Guid) => {
-    getChat(chatId).then((chat) => {
-      const content = chat.content ?? [];
-      const displayHistory: ChatDisplayMessage[] = content.map((m) => ({
-        ...m,
-        displayType: DisplayMessageType.Normal,
-      }));
+    getChat(chatId)
+      .then((chat) => {
+        const content = chat.content ?? [];
+        const displayHistory: ChatDisplayMessage[] = content.map((m) => ({
+          ...m,
+          displayType: DisplayMessageType.Normal,
+        }));
 
-      setChatHistory(displayHistory);
-      setCurrentChatId(chat.chatId);
-      setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
-    });
+        setChatHistory(displayHistory);
+        setCurrentChatId(chat.chatId);
+        setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
+      })
+      .catch(() => {
+        setChatHistory([]);
+        setCurrentChatId(null);
+        setWordCounts({ lastSent: 0, lastReceived: 0, totalSent: 0, totalReceived: 0 });
+      });
   }, [getChat, setCurrentChatId]);
 
   const startNewChat = useCallback(() => {

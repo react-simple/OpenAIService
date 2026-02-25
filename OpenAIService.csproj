@@ -10,7 +10,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
     <SpaProxyServerUrl>http://localhost:44489</SpaProxyServerUrl>
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
-    <RootNamespace>OpenAIServiceGPT4o</RootNamespace>
+    <RootNamespace>OpenAIServiceGpt4o</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>5f931063-a207-4bf9-b75c-9719cae12784</UserSecretsId>
   </PropertyGroup>
@@ -70,7 +70,6 @@
 
   <ItemGroup>
     <Folder Include="ClientApp\src\functions\" />
-    <Folder Include="ClientApp\src\types\" />
     <Folder Include="Helpers\" />
     <Folder Include="Models\" />
   </ItemGroup>

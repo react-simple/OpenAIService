@@ -1,5 +1,4 @@
 using System.Text;
-using OpenAIServiceGpt4o;
 
 namespace OpenAIServiceGpt4o.Helpers
 {

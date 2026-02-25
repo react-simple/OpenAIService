@@ -1,4 +1,3 @@
-using Azure.AI.OpenAI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenAIServiceGpt4o.Helpers;
@@ -39,7 +38,6 @@ namespace OpenAIServiceGpt4o.Controllers
       if (string.IsNullOrWhiteSpace(email))
         return Unauthorized();
 
-      var chatClient = _chatClient;
       var chat = await _chatService.GetChatAsync(email, request.ChatId, cancellationToken);
 
       var messagesToSend = request.Messages.AsEnumerable();
@@ -51,14 +49,14 @@ namespace OpenAIServiceGpt4o.Controllers
 
       try
       {
-        var completion = await chatClient.CompleteChatAsync(messages, RequestOptions);
+        var completion = await _chatClient.CompleteChatAsync(messages, RequestOptions, cancellationToken);
         var response = FromCompletion(completion.Value);
 
         var fullMessages = request.Messages.Concat(response.Messages).Where(m => m.Role != ChatRole.System).ToList();
         chat.Content = fullMessages.Count > 0 ? fullMessages.ToArray() : null;
         await _chatService.SaveChatAsync(chat, cancellationToken);
 
-        await TryGenerateAndSaveTitleAsync(chatClient, chat, fullMessages, cancellationToken);
+        await TryGenerateAndSaveTitleAsync(_chatClient, chat, fullMessages, cancellationToken);
 
         response.ChatId = chat.ChatId;
         return Ok(response);
@@ -150,7 +148,7 @@ namespace OpenAIServiceGpt4o.Controllers
 
       try
       {
-        var completion = await chatClient.CompleteChatAsync(titleMessages, RequestOptions);
+        var completion = await chatClient.CompleteChatAsync(titleMessages, RequestOptions, cancellationToken);
         var title = string.Join(" ", completion.Value.Content.Select(c => c.Text ?? "")).Trim();
 
         if (string.IsNullOrEmpty(title))

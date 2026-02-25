@@ -1,6 +1,4 @@
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -52,7 +50,7 @@ namespace OpenAIServiceGpt4o.Services
 
       var response = await client.DownloadContentAsync(cancellationToken).ConfigureAwait(false);
       var json = response.Value.Content.ToString();
-      var dto = JsonSerializer.Deserialize<UserRecord>(json, JsonOptions);
+      var dto = JsonSerializer.Deserialize<User>(json, JsonOptions);
       var allowed = dto?.IsEnabled ?? false;
       _cache.Set(key, allowed, TimeSpan.FromMinutes(Constants.Cache.AllowedUserCacheDurationMinutes));
       return allowed;
