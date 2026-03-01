@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import type { ChatDisplayMessage } from "hooks";
 import { DisplayMessageType } from "hooks";
-import { copyToClipboard } from "utils";
+import { copyToClipboard, formatMessageContent } from "utils";
 import * as Styled from "../Home.styles";
 import { IconButton } from "components";
 import { CopyIcon, RefreshIcon, TrashIcon } from "icons";
@@ -41,7 +41,7 @@ export const MessageList = ({
         return (
           <Styled.MessageBlock key={i} $align={align}>
             <Styled.MessageBubble $variant={variant}>
-              {msg.content}
+              {formatMessageContent(msg.content)}
             </Styled.MessageBubble>
             <Styled.MessageActions>
               {isLastAssistant && (
