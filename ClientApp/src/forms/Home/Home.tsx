@@ -58,7 +58,7 @@ export const Home = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
 
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       if (input.trim()) {
         chat.sendMessage(input);
@@ -95,7 +95,10 @@ export const Home = () => {
           <ChatsButtonAndModal
             currentChatId={chats.currentChatId}
             onSelectChat={chat.loadChat}
-            onNewChat={chat.startNewChat}
+            onNewChat={() => {
+              chat.startNewChat();
+              setInput("");
+            }}
           />
           <MemoryButtonAndModal memory={memory} onMemoryChange={setMemory} />
           <Button
